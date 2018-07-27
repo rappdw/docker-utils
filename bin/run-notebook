@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+
+if [ -d "./docker/notebook" ]; then
+    build-image -f notebook
+    run-image notebook
+else
+    # Script to run rappdw/docker-ds notebok against the current directory
+    docker pull rappdw/docker-ds:latest
+    date_stamp=$(date "+%Y_%m_%d_%H.%M.%S")
+    if [ -z "$DOCKER_HOST" ]
+    then
+        if [[ ! -d "./.ipynb_checkponts" ]]; then
+            mkdir ./ipynb_checkpoints
+        fi
+        echo 'docker run --init --name '$USER'_notebook_'$date_stamp' -e NOTEBOOK_MODE=lab --rm -it --mount type=bind,source=$(pwd),target=/home/jovyan/project -v /data:/data --mount type=bind,source=$HOME/.aws,target=/home/jovyan/.aws -p 8888:8888 rappdw/docker-ds:latest'
+        docker run --init --name $USER"_notebook_"$date_stamp -e NOTEBOOK_MODE=lab --rm -it --mount type=bind,source=$(pwd),target=/home/jovyan/project -v /data:/data --mount type=bind,source=$HOME/.aws,target=/home/jovyan/.aws -p 8888:8888 rappdw/docker-ds:latest
+    else
+        echo 'docker run --init --name '$USER'_notebook_'$date_stamp' -e NOTEBOOK_MODE=lab --rm -it --mount type=bind,source=/data/workspaces/'$USER'/code/'${PWD##*/}',target=/home/jovyan/project -v /data:/data -p 8888:8888 rappdw/docker-ds:latest'
+        docker run --init --name $USER"_notebook_"$date_stamp -e NOTEBOOK_MODE=lab --rm -it --mount type=bind,source="/data/workspaces/"$USER"/code/"${PWD##*/}",target=/home/jovyan/project" -v /data:/data -p 8888:8888 rappdw/docker-ds:latest
+    fi
+
+fi
