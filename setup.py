@@ -25,17 +25,25 @@ setup_options = dict(
     long_description=long_description,
     author='Daniel Rapp',
     url='https://github.com/rappdw/docker-utils.git',
-    scripts=['bin/build-image', 'bin/publish-image',
-             'bin/run-image', 'bin/genversion', 'bin/transfer-image'],
+    scripts=[
+        'scripts/build-image',
+        'scripts/genversion',
+        'scripts/publish-image',
+        'scripts/run-image',
+        'scripts/run-notebook',
+        'scripts/transfer-image'
+    ],
     packages=find_packages(exclude=['tests*']),
     license="MIT License",
-    python_requires='>=3.6',
+    python_requires='>=3.5',
     classifiers=(
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Natural Language :: English',
         'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ),
     install_requires=[
         'boto3'
@@ -45,8 +53,8 @@ setup_options = dict(
             'wheel>=0.29'
         ],
         'test': [
-            'pytest>=3.0,<4',
-            'pytest-cov>=2.4,<3',
+            'pytest>=3.0',
+            'pytest-cov>=2.4',
             'pylint>=1.8.1'
         ],
     },
