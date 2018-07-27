@@ -8,4 +8,5 @@ dist
 _testing_output/
 build
 activate
-
+.coverage
+.pytest_cache

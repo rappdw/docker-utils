@@ -25,8 +25,7 @@ def get_root_dir():
         if os.path.exists(docker_dir) and os.path.isdir(docker_dir):
             _ROOT_DIR = os.getcwd()
         else:
-            logger.warning(f'Unable to find docker directory. Invalid root: {os.getcwd()}')
-            sys.exit(1)
+            raise ValueError(f'Unable to find docker directory. Invalid root: {os.getcwd()}')
 
     return _ROOT_DIR
 
