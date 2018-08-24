@@ -1,0 +1,14 @@
+{
+    "tls": true,
+    "graph": "/data/docker",
+    "tlscacert": "/etc/resero/docker-keys/ca.pem",
+    "tlscert": "/etc/resero/docker-keys/server-cert.pem",
+    "tlskey": "/etc/resero/docker-keys/server-key.pem",
+    "hosts": ["tcp://0.0.0.0:2377", "unix://var/run/docker.sock"],
+    "runtimes": {
+        "nvidia": {
+            "path": "/usr/bin/nvidia-container-runtime",
+            "runtimeArgs": []
+        }
+    }
+}

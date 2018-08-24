@@ -1,0 +1,161 @@
+#!/bin/bash
+
+FORCE_REBUILD=false
+while getopts "f:" OPTION
+do
+    case $OPTION in
+        f)
+            FORCE_REBUILD=true
+            shift
+            ;;
+        --help | -h)
+            shift
+            ;;
+    esac
+done
+
+REMOTE_CONFIG_DIR='/etc/resero/docker-keys'
+USER=${1:-none}
+DOCK_HOSTNAME=${2:-none}
+IP=${2:-none}
+MONIKER=${3:-$2}
+PORT=2377
+
+if [ $USER == "none" ] || [ $DOCK_HOSTNAME == "none" ]; then
+  echo "This script will secure the docker daemon socket on a remote server and download the"
+  echo "requisite files and configuration for usage."
+  echo 
+  echo "NOTE: This script is potentially destructive:"
+  echo "  - On the client it will overwrite certificates in ~/.docker/"
+  echo "  - On the server it will overwrite /etc/docker/daemon.json and $REMOTE_CONFIG_DIR/"
+  echo 
+  echo "This script will also restart the docker daemon on the server with 'sudo systemctl restart docker'"
+  echo 
+  echo "CONFIGURATION"
+  echo "Add private key identity to the authentication agent"
+  echo "    $ ssh-add -K ~/.ssh/<ssh key for remote server>"
+  echo 
+  echo "Usage:"
+  echo "    $ register-dock [-f] <host username> <IP | hostname> [moniker]"
+  echo "        - 'hostname' is a hostname that you have configured locally, e.g. in /etc/hosts"
+  echo "        - The optional moniker will be added to your terminal prompt when remote docker"
+  echo "          is enabled. Otherwise the host IP will be added."
+  echo "        - If the certificate is already on the server then it will be copied to your machine."
+  echo "        - Use the -f flag to force creation of a new CA, server and client key."
+  echo
+  echo "    Examples:"
+  echo "    $ register-dock ubuntu 10.93.133.6"
+  echo "    $ register-dock bveranth neon"
+  echo "    $ register-dock bveranth neon remote-neon"
+  exit 1
+fi
+
+TEMP_PASS=$(openssl rand -base64 12)
+
+if [ $(echo $IP | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}') == 0 ]; then
+    #IP=$(arp -n "$DOCK_HOSTNAME" | tr -d '()' | awk '{print $2}')
+    IP=$(ping -i 0.5 -W 0.5 -c 1 "$DOCK_HOSTNAME" | head -n 1 |tr -d '():'|awk '{print $3}')
+fi
+
+if [ -z "$IP" ]; then
+  echo "The hostname or IP that you specified ($DOCK_HOSTNAME) can't be resolved."
+  kill -INT $$
+fi
+
+echo "MONIKER:$MONIKER"
+echo "HOSTNAME:$DOCK_HOSTNAME"
+echo "IP:$IP"
+echo "Connecting to ${IP}..."
+
+# If force rebuild flag is not set, then check for already existing key on server and download it.
+if [ $FORCE_REBUILD == false ] && ssh $USER@$IP "[ -f $REMOTE_CONFIG_DIR/ca.pem ]"; then
+    if [ -f ~/.docker/${IP}/ca.pem ]; then
+        mv -f ~/.docker/${IP}/ca.pem ~/.docker/${IP}/ca.pem.back
+        mv -f ~/.docker/${IP}/key.pem ~/.docker/${IP}/key.pem.back
+        mv -f ~/.docker/${IP}/cert.pem ~/.docker/${IP}/cert.pem.back
+    fi
+    mkdir -p ~/.docker/${IP}
+
+    # Delete local files before copying from remote host.
+    rm -f ~/.docker/${IP}/ca.pem
+    rm -f ~/.docker/${IP}/key.pem
+    rm -f ~/.docker/${IP}/cert.pem
+
+    # Copy new files from remote host
+    scp $USER@$IP:$REMOTE_CONFIG_DIR/ca.pem ~/.docker/${IP}/ca.pem &&
+    scp $USER@$IP:$REMOTE_CONFIG_DIR/key.pem ~/.docker/${IP}/key.pem &&
+    scp $USER@$IP:$REMOTE_CONFIG_DIR/cert.pem ~/.docker/${IP}/cert.pem &&
+    export DOCKER_TLS_VERIFY=1 &&
+    export DOCKER_CERT_PATH=~/.docker/$IP &&
+    export DOCKER_HOST=tcp://$IP:$PORT &&
+    printf "DOCK_USER=$USER\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$DOCK_HOSTNAME\nDOCK_IP=$IP\n" > $HOME/.docker/${IP}/connection_config.txt &&
+    echo "Secure remote docker API configured."
+    exit 0
+fi
+
+if ssh $USER@$IP "[ -d $REMOTE_CONFIG_DIR ]"; then
+    echo "Backing up remote keys $REMOTE_CONFIG_DIR"
+    ssh $USER@$IP "sudo rm -rf $REMOTE_CONFIG_DIR-back" &&
+    ssh $USER@$IP "sudo cp -rf $REMOTE_CONFIG_DIR $REMOTE_CONFIG_DIR-back" &&
+    ssh $USER@$IP "sudo rm -rf $REMOTE_CONFIG_DIR"
+fi
+
+# echo "Creating CA..."
+ssh $USER@$IP "sudo mkdir -p $REMOTE_CONFIG_DIR" &&
+ssh $USER@$IP "sudo openssl genrsa -aes256 -passout pass:$TEMP_PASS -out $REMOTE_CONFIG_DIR/ca-key.pem 4096" &&
+ssh $USER@$IP "sudo openssl req -new -x509 -days 365 -key $REMOTE_CONFIG_DIR/ca-key.pem -sha256 \
+    -out $REMOTE_CONFIG_DIR/ca.pem -passin pass:$TEMP_PASS \
+    -subj '/C=US/ST=Utah/L=Draper/O=Proofpoint/OU=Resero/CN=proofpoint.com'" &&
+sleep 1 &&
+ssh $USER@$IP "sudo openssl genrsa -out $REMOTE_CONFIG_DIR/server-key.pem 4096"
+
+# echo "Creating new docker keys"
+ssh $USER@$IP "sudo openssl req -subj '/CN=$HOSTNAME' -sha256 -new -key $REMOTE_CONFIG_DIR/server-key.pem \
+    -out $REMOTE_CONFIG_DIR/server.csr" &&
+ssh $USER@$IP "echo subjectAltName = DNS:\$HOSTNAME,IP:$IP > /tmp/extfile.cnf" &&
+ssh $USER@$IP "sudo mv /tmp/extfile.cnf $REMOTE_CONFIG_DIR/extfile.cnf" &&
+ssh $USER@$IP "sudo openssl x509 -req -days 365 -sha256 -in $REMOTE_CONFIG_DIR/server.csr \
+    -CA $REMOTE_CONFIG_DIR/ca.pem -CAkey $REMOTE_CONFIG_DIR/ca-key.pem -CAcreateserial \
+    -out $REMOTE_CONFIG_DIR/server-cert.pem -extfile $REMOTE_CONFIG_DIR/extfile.cnf -passin pass:$TEMP_PASS" &&
+ssh $USER@$IP "sudo openssl genrsa -out $REMOTE_CONFIG_DIR/key.pem 4096" &&
+ssh $USER@$IP "sudo openssl req -subj '/CN=client' -new -key $REMOTE_CONFIG_DIR/key.pem -out $REMOTE_CONFIG_DIR/client.csr" &&
+ssh $USER@$IP "sudo echo extendedKeyUsage = clientAuth > $REMOTE_CONFIG_DIR/extfile.cnf" &&
+ssh $USER@$IP "sudo openssl x509 -req -days 365 -sha256 -in $REMOTE_CONFIG_DIR/client.csr \
+    -CA $REMOTE_CONFIG_DIR/ca.pem -CAkey $REMOTE_CONFIG_DIR/ca-key.pem -CAcreateserial \
+    -out $REMOTE_CONFIG_DIR/cert.pem -extfile $REMOTE_CONFIG_DIR/extfile.cnf -passin pass:$TEMP_PASS" &&
+ssh $USER@$IP "sudo rm -v $REMOTE_CONFIG_DIR/client.csr $REMOTE_CONFIG_DIR/server.csr" &&
+ssh $USER@$IP "sudo chmod 0444 $REMOTE_CONFIG_DIR/ca-key.pem $REMOTE_CONFIG_DIR/key.pem $REMOTE_CONFIG_DIR/server-key.pem" &&
+ssh $USER@$IP "sudo chmod 0444 $REMOTE_CONFIG_DIR/ca.pem $REMOTE_CONFIG_DIR/server-cert.pem $REMOTE_CONFIG_DIR/cert.pem"
+
+### copy CA to client.
+mkdir -p ~/.docker/${IP} &&
+if [ -f ~/.docker/${IP}/ca.pem.back ]; then
+    rm -f ~/.docker/${IP}/ca.pem.back
+    rm -f ~/.docker/${IP}/key.pem.back
+    rm -f ~/.docker/${IP}/cert.pem.back
+fi
+if [ -f ~/.docker/${IP}/ca.pem ]; then
+    mv -f ~/.docker/${IP}/ca.pem ~/.docker/${IP}/ca.pem.back
+    mv -f ~/.docker/${IP}/key.pem ~/.docker/${IP}/key.pem.back
+    mv -f ~/.docker/${IP}/cert.pem ~/.docker/${IP}/cert.pem.back
+fi
+
+scp $USER@$IP:$REMOTE_CONFIG_DIR/ca.pem ~/.docker/${IP}/ca.pem &&
+scp $USER@$IP:$REMOTE_CONFIG_DIR/key.pem ~/.docker/${IP}/key.pem &&
+scp $USER@$IP:$REMOTE_CONFIG_DIR/cert.pem ~/.docker/${IP}/cert.pem &&
+# TODO: Rather than overwriting the configuration (generally a poor practice)
+# TODO: look at merging the configuration we are interested in, into the configuration
+# TODO: that is already present
+ssh $USER@$IP 'sudo rm -f /etc/docker/daemon.json' &&
+DOCKER_CFG_FILE=$(python3 -c "import pkg_resources; print(pkg_resources.resource_filename('dockerutils', 'docker-server-daemon.json'))")
+scp $DOCKER_CFG_FILE $USER@$IP:/tmp/daemon.json &&
+ssh $USER@$IP 'sudo mkdir -p /etc/docker/' &&
+ssh $USER@$IP 'sudo mv /tmp/daemon.json /etc/docker/daemon.json' &&
+ssh $USER@$IP 'sudo systemctl stop docker' &&
+ssh $USER@$IP 'sudo systemctl daemon-reload' &&
+ssh $USER@$IP 'sudo systemctl start docker' &&
+export DOCKER_TLS_VERIFY=1 &&
+export DOCKER_CERT_PATH=~/.docker/$IP &&
+export DOCKER_HOST=tcp://$IP:$PORT &&
+printf "DOCK_USER=$USER\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$DOCK_HOSTNAME\nDOCK_IP=$IP\n" > $HOME/.docker/${IP}/connection_config.txt &&
+docker version
