@@ -11,7 +11,12 @@ fi
 
 if [ -d "./docker/notebook" ]; then
     build-image -f notebook
-    run-image notebook
+    if [ -z "$DOCKER_HOST" ]
+    then
+        run-image notebook
+    else
+        run-image dock-notebook
+    fi
 else
     # Script to run rappdw/docker-ds notebok against the current directory
     if [ "$DOCKER_DS_DONT_PULL" = "pull" ]; then
@@ -40,8 +45,10 @@ else
         echo 'docker run --init --name '$USER'_notebook_'$date_stamp' '$DOCKER_ENV' -e NOTEBOOK_MODE=lab --rm -it '$volume_mounts' -p 8888:8888 rappdw/docker-ds:latest'
         docker run --init --name $USER"_notebook_"$date_stamp $DOCKER_ENV -e NOTEBOOK_MODE=lab --rm -it $volume_mounts -p 8888:8888 rappdw/docker-ds:latest
     else
+        sync-up
         echo 'docker run --init --name '$USER'_notebook_'$date_stamp' '$DOCKER_ENV' -e NOTEBOOK_MODE=lab --rm -it --mount type=bind,source=/data/workspaces/'$USER'/code/'${PWD##*/}',target=/home/jovyan/project -v /data:/data -p 8888:8888 rappdw/docker-ds:latest'
         docker run --init --name $USER"_notebook_"$date_stamp $DOCKER_ENV -e NOTEBOOK_MODE=lab --rm -it --mount type=bind,source="/data/workspaces/"$USER"/code/"${PWD##*/}",target=/home/jovyan/project" -v /data:/data -p 8888:8888 rappdw/docker-ds:latest
+        sync-down
     fi
 
 fi
