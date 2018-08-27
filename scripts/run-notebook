@@ -15,7 +15,9 @@ if [ -d "./docker/notebook" ]; then
     then
         run-image notebook
     else
+        sync-up
         run-image dock-notebook
+        sync-down
     fi
 else
     # Script to run rappdw/docker-ds notebok against the current directory
