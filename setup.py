@@ -27,6 +27,7 @@ setup_options = dict(
     scripts=[
         'scripts/build-image',
         'scripts/dock',
+        'scripts/dock-sync',
         'scripts/genversion',
         'scripts/publish-image',
         'scripts/register-dock',

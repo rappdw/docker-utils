@@ -5,6 +5,8 @@ DOCKER_DS_DIFFS=${DOCKER_DS_DIFFS:-no_diffs}
 
 DOCKER_ENV=""
 
+. dock-sync
+
 if [ "$DOCKER_DS_DIFFS" != "no_diffs" ]; then
     DOCKER_ENV="-e DOCKER_DS_DIFFS=1"
 fi
