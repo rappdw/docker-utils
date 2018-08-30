@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+
+function do-sync-up() {
+    if [ -e .gitignore ]; then
+        if [ -e .dockerignore ]; then
+          rsync -azq --delete --filter=:- .gitignore --filter=:- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        else
+          rsync -azq --delete --filter=:- .gitignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        fi
+    else
+        if [ -e .dockerignore ]; then
+          rsync -azq --delete --filter=:- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        else
+          rsync -azq --delete -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        fi
+    fi
+}
+
+function do-sync-down() {
+    if [ -e .gitignore ]; then
+        if [ -e .dockerignore ]; then
+          rsync -azq --delete --filter=.- .gitignore --filter=.- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        else
+          rsync -azq --delete --filter=.- .gitignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        fi
+    else
+        if [ -e .dockerignore ]; then
+          rsync -azq --delete --filter=.- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        else
+          rsync -azq --delete -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+        fi
+    fi
+}
+
+function sync-up() {
+  local user=$(whoami)
+  do-sync-up $PWD ubuntu@$DOCKER_IP:/data/workspaces/$user/code
+
+  # generate the version file and sync it over the <repo>/_version.py file
+  # This utilizes the same versioning mechanism that versioneer has in place for exporting tars from
+  # a git repo, and allows us to have version info without requiring a sync of the git repo
+  if [ -f "$PWD/setup.cfg" ]; then
+      # generate the _version.py.bld
+      genversion
+
+      # first get the directory name for the repo
+      local CODE_DIR=${PWD##*/}
+
+      # now find out where the version file is
+      local LINE=$(grep versionfile_source $PWD/setup.cfg)
+      local SPLIT=(${LINE//=/ })
+      local FILE=${SPLIT[1]}
+
+      # finally sync _version.py.bld into the version file
+      do-sync-up $PWD/_version.py.bld ubuntu@$DOCKER_IP:/data/workspaces/$user/code/$CODE_DIR/$FILE
+   fi
+   return 0
+}
+
+function sync-down() {
+  do-sync-down "ubuntu@$DOCKER_IP:/data/workspaces/$(whoami)/code/${PWD##*/}/*" .
+  return 0
+}
