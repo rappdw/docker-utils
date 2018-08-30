@@ -3,13 +3,13 @@
 function do-sync-up() {
     if [ -e .gitignore ]; then
         if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=:- .gitignore --filter=:- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+          rsync -azq --delete --filter=":- .gitignore" --filter=":- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         else
-          rsync -azq --delete --filter=:- .gitignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+          rsync -azq --delete --filter=":- .gitignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         fi
     else
         if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=:- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+          rsync -azq --delete --filter=":- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         else
           rsync -azq --delete -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         fi
@@ -19,13 +19,13 @@ function do-sync-up() {
 function do-sync-down() {
     if [ -e .gitignore ]; then
         if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=.- .gitignore --filter=.- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+          rsync -azq --delete --filter=".- .gitignore" --filter=".- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         else
-          rsync -azq --delete --filter=.- .gitignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+          rsync -azq --delete --filter=".- .gitignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         fi
     else
         if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=.- .dockerignore -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
+          rsync -azq --delete --filter=".- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         else
           rsync -azq --delete -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
         fi
