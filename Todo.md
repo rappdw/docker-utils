@@ -62,3 +62,7 @@ Opinions:
 
 * Should we create sub-shells with env similar to pipenv?
 * Should pipenv be used? if so how?
+* What changes should be made to ~/.ssh/config to support this
+
+## Other niceities
+* Add monikers to /etc/hosts or ~/.ssh/config appropriately
