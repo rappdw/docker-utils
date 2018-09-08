@@ -1,0 +1,88 @@
+{
+  "builders": [
+    {
+      "ami_name": "resero-labs-nvidia-docker-v1",
+      "type": "amazon-ebs",
+      "force_deregister": "true",
+      "instance_type": "p3.2xlarge",
+      "launch_block_device_mappings": [
+        {
+          "device_name": "/dev/sda1",
+          "volume_size": 100,
+          "volume_type": "gp2",
+          "delete_on_termination": true
+        }
+      ],
+      "region": "us-west-2",
+      "ssh_keypair_name": "resero-staging",
+      "ssh_agent_auth": true,
+      "security_group_ids": [
+        "sg-213eb35a",
+        "sg-3bde0341",
+        "sg-b93e0dc2",
+        "sg-1bd90461"
+      ],
+      "source_ami": "ami-09eb876a926ae86db",
+      "ssh_username": "ubuntu",
+      "iam_instance_profile": "lanista-app",
+      "subnet_id": "subnet-b8b440de",
+      "tags": {
+        "Name": "resero-labs-nvidia-docker-v1"
+      }
+    }
+  ],
+  "post-processors": [],
+  "provisioners": [
+    {
+      "type": "shell",
+      "inline": [
+        "sleep 30",
+        "sudo apt-get update",
+        "sudo apt-get install -y gcc make",
+        "wget -P /tmp http://us.download.nvidia.com/tesla/396.44/NVIDIA-Linux-x86_64-396.44.run",
+        "chmod +x /tmp/NVIDIA-Linux-x86_64-396.44.run",
+        "sudo /tmp/NVIDIA-Linux-x86_64-396.44.run -silent",
+        "sudo apt-get update",
+        "sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common",
+        "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -",
+        "curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -",
+        "distribution=$(. /etc/os-release;echo $ID$VERSION_ID)",
+        "sudo add-apt-repository 'deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable'",
+        "curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list",
+        "sudo apt-get update",
+        "sudo apt-get install -y docker-ce=18.06.0~ce~3-0~ubuntu",
+        "sudo apt-get install -y nvidia-docker2",
+        "sudo apt-get update",
+        "sudo apt-get install -y unattended-upgrades"
+      ]
+    },
+    {
+      "type": "file",
+      "source": "docker-setup-v1.sh",
+      "destination": "~/docker-setup-v1.sh"
+    },
+    {
+      "type": "shell",
+      "inline": ["sudo ~/docker-setup-v1.sh"]
+    },
+    {
+      "type": "file",
+      "source": "etc-rc.local",
+      "destination": "~/rc.local"
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo cp /home/ubuntu/rc.local /etc/rc.local",
+        "rm /home/ubuntu/rc.local"
+      ]
+    },
+    {
+      "type": "shell",
+      "inline": [
+        "sudo mkdir /data",
+        "sudo chown -R ubuntu /data"
+      ]
+    }
+  ]
+}
