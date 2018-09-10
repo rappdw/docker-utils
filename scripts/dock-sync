@@ -34,6 +34,8 @@ function do-sync-down() {
 
 function sync-up() {
     local user=$(whoami)
+    ssh ubuntu@$DOCKER_IP 'sudo chown -R ubuntu /data/workspaces || true'
+    ssh ubuntu@$DOCKER_IP 'sudo chown -R ubuntu /data/workspaces/'$USER' || true'
     ssh ubuntu@$DOCKER_IP 'mkdir -p /data/workspaces/'$USER'/code'
     do-sync-up $PWD ubuntu@$DOCKER_IP:/data/workspaces/$USER/code
 
