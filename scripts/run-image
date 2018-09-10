@@ -108,9 +108,15 @@ if __name__ == '__main__':
             'cmd': args.command or '',
             'init': init
         }
+
+        is_docked = bool(os.environ.get('DOCKER_IP'))
+
         if args.image in config.sections():
             for key in run_config.keys():
-                if not run_config[key] and key in config[args.image]:
+                docked_key = f"{key}_docked"
+                if is_docked and not run_config[key] and docked_key in config[args.image]:
+                    run_config[key] = config[args.image][docked_key]
+                elif not run_config[key] and key in config[args.image]:
                     run_config[key] = config[args.image][key]
 
         image_name, image_tag = get_image_designation(args.image, config)
