@@ -1,18 +1,24 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Default Values
-USERNAME="$(aws-whoami)"
-INSTANCE_NAME="${USERNAME}-dock"
 INSTANCE_TYPE="m5.xlarge"
 SUBNET_ID="subnet-0cf3c97675ecb8e82"
+
 MONIKER=
 
 GREEN='\033[0;32m'
 NO_COLOR='\033[0m'
 
-AMI_ID=$(aws ec2 describe-images --filters "Name=tag:Name,Values=resero-labs-nvidia-docker" --query 'Images[*].{ID:ImageId}' --output text)
+check_aws_connectivity() {
+    echo "Checking aws connectivity..."
+    USERNAME=$(aws iam get-user --query "User.UserName" --output text)
+    if [ "$USERNAME" == None ]; then
+        echo "Failed to get valid aws username."
+        exit 1
+    fi
+}
 
-ensure_dependencies () {
+ensure_dependencies() {
     if [ -z $(which register-dock) ]; then
         echo -e "Unable to find required dependencies from docker-utils, something is amiss in your dockerutils installation. Consider updating:"
         echo -e "  pip install -U dockerutils"
@@ -20,35 +26,53 @@ ensure_dependencies () {
     fi
 }
 
-confirm_create () {
+check_aws_connectivity
+ensure_dependencies
+INSTANCE_NAME="${USERNAME}-dock"
+
+confirm_create() {
     if [ -z "$1" ]; then
         echo -e "Create dock with the following values?"
         echo -e "Instance type: ${GREEN}${INSTANCE_TYPE}${NO_COLOR}"
         echo -e "Name: ${GREEN}${INSTANCE_NAME}${NO_COLOR}"
+        echo -e "AMI ID: ${GREEN}${AMI_ID}${NO_COLOR}"
         read -e -p "Type enter to Cancel, h for Help, y to Create: " RESPONSE
     fi
 
     if [ "$RESPONSE" == "h" ]; then print_help; fi
 }
 
-print_help () {
+print_help() {
     echo "Create dock - Help"
+    echo
     echo "Description"
     echo "  This script uses the aws cli to create a new ec2 dock instance from the latest AMI."
     echo "  If no options are passed into the script, it will prompt with defaults."
     echo "  The register-dock script is run automatically after the instance is ready."
     echo
     echo "Usage"
-    echo "  $ aws-create-dock [options]"
+    echo "  $ create-dock [options]"
     echo
     echo "Options"
     echo -e "\n -n dock-name\n    Specify a name for this dock with this format: my-dock-name"
-    echo "    If dock-name is not specified, the name defaults to \"${INSTANCE_NAME}\""
-    echo -e "\n -m moniker\n    The 'dock' name to use when connecting to the instance. (default is unset, use IP address)"
-    echo -e "\n -i instance-type\n    The default instance type is m5.xlarge (no GPU).\n    Other options include p2.xlarge (GPU), m5.2xlarge, etc."
-    echo -e "\n -a ami-id\n    The ami to use for the instance (default is ami-0526fc892fc43ac33)"
-    echo -e "\n -s subnet-id\n    The subnet-id to use for the instance (default is subnet-0cf3c97675ecb8e82)"
+    echo -e "    If dock-name is not specified, the name defaults to ${GREEN}${INSTANCE_NAME}${NO_COLOR}"
+    echo -e "\n -m moniker\n    moniker will be added to your cli prompt to indicate that you are docked. (Default: instance IP address)"
+    echo
+    echo "    Example CLI prompt with python virtual environment enabled and docked to remote worker:"
+    echo -e "    $ (venv-name) prompt$ [dock:moniker] "
+
+    echo -e "\n -i instance-type\n    The default instance type is ${INSTANCE_TYPE} (no GPU).\n    Other options include p2.xlarge (GPU), m5.2xlarge, etc."
+    echo -e "\n -a ami-id\n    (Optional) The ami to use for the instance."
+    echo -e "\n -s subnet-id\n    (Optional) The subnet-id to use for the instance."
     echo -e "\n -h help\n    This help"
+    echo 
+    echo "Examples"
+    echo
+    echo -e "  $ create-dock\n    Create default instance type ($INSTANCE_TYPE) named ${INSTANCE_NAME}.\n    CLI prompt moniker when docked will be [dock:IP address]."
+    echo 
+    echo -e "  $ create-dock -i t2.micro -m my-dock\n    Create t2.micro instance type named ${INSTANCE_NAME}.\n    CLI prompt moniker when docked will be [dock:my-dock]."
+
+
     exit 0
 }
 
@@ -77,14 +101,19 @@ while getopts 'hn:i:a:s:m:' flag; do    # if a character is followed by a colon,
   esac
 done
 
-# ensure required dependencies met
-ensure_dependencies
 
 # Help
-if [ ! -z "$hflag" ] || [ "$RESPONSE" == "h" ]; then
+if [ -n "$hflag" ] || [ "$RESPONSE" == "h" ]; then
     print_help
 fi
 
+if [ -z "$AMI_ID" ]; then
+    AMI_ID=$(aws ec2 describe-images --filters "Name=tag:Name,Values=resero-labs-nvidia-docker" --query 'Images[*].{ID:ImageId}' --output text)
+    if [ -z "$AMI_ID" ]; then
+        echo "Unable to fetch default AMI ID."
+        exit 1
+    fi
+fi
 
 # Confirmation
 confirm_create
@@ -120,7 +149,7 @@ if [ ! -z "$INSTANCE_ID" ]; then
 
     if [ $(echo $IP_ADDRESS | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}') == 1 ]; then
         echo 'Registering secure remote docker api'
-        register-dock ubuntu $IP_ADDRESS
+        register-dock ubuntu "$IP_ADDRESS" "$MONIKER"
     fi
 
     echo "New EC2 instance available to dock at $IP_ADDRESS"

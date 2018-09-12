@@ -51,9 +51,7 @@
         "curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list",
         "sudo apt-get update",
         "sudo apt-get install -y docker-ce=18.06.0~ce~3-0~ubuntu",
-        "sudo apt-get install -y nvidia-docker2",
-        "sudo apt-get update",
-        "sudo apt-get install -y unattended-upgrades"
+        "sudo apt-get install -y nvidia-docker2"
       ]
     },
     {
