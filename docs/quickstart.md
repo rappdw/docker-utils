@@ -22,7 +22,7 @@ $ create-dock
 ```bash
 
 # Connect to remote secure docker
-$ source dock <ip>
+$ source dock <ip|moniker>
 
 # Sync local files to remote instance
 $ sync-up
@@ -30,7 +30,7 @@ $ sync-up
 # Sync remote changes to local worksation
 $ sync-down
 
-# After 'source dock <ip>'
+# After 'source dock <ip|moniker>'
 $ bin/notebook
 $ bin/dev
 
