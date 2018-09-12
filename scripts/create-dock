@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Default Values
-AMI_ID="ami-0526fc892fc43ac33"
 USERNAME="$(aws-whoami)"
 INSTANCE_NAME="${USERNAME}-dock"
 INSTANCE_TYPE="m5.xlarge"
@@ -10,6 +9,8 @@ MONIKER=
 
 GREEN='\033[0;32m'
 NO_COLOR='\033[0m'
+
+AMI_ID=$(aws ec2 describe-images --filters "Name=tag:Name,Values=resero-labs-nvidia-docker" --query 'Images[*].{ID:ImageId}' --output text)
 
 ensure_dependencies () {
     if [ -z $(which register-dock) ]; then
@@ -113,7 +114,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
 if [ ! -z "$INSTANCE_ID" ]; then
     echo "Creating instance id: $INSTANCE_ID"
     echo "Waiting for instance to start..."
-    aws ec2 wait instance-running --instance-ids $INSTANCE_ID
+    aws ec2 wait system-status-ok --instance-ids $INSTANCE_ID
 
     IP_ADDRESS=$(get_private_ip $INSTANCE_ID)
 
