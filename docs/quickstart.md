@@ -4,10 +4,10 @@
 ```bash
 $ pip3 install -U dockerutils
 
-# show installed version and latest version
+# Show installed version and latest version
 $ pip3 search dockerutils
 
-# if you are unable to install the latest version, try:
+# If you are unable to install the latest version, try:
 $ pip3 install -U --force-reinstall dockerutils==<latest version>
 
 # Show help
