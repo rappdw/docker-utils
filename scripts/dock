@@ -16,7 +16,7 @@ done
 MONIKER=${1:-none}
 PORT=2377
 
-if [ ! -z "$_DOCK_MONIKER" ]; then
+if [ -n "$_DOCK_MONIKER" ]; then
   echo "Remote docker is already configured for '$DOCK_MONIKER'. Try 'castoff' to disconnect."
   return 0
 fi
@@ -62,22 +62,49 @@ if [ -z "$DOCK_IP" ]; then
   kill -INT $$
 fi
 
+# Update command line prompt to reflect docked condition.
+# Python virtual environment prompt (or lack therof) should remain unchanged.
+update_dock_prompt() {
+  _DOCK_MONIKER="[dock:$DOCK_MONIKER] "
+  export _DOCK_MONIKER
+
+  if [ -n "$_OLD_VIRTUAL_PS1" ]; then
+
+    _UNDOCKED_PS1="$PS1"
+    _OLD_VIRTUAL_PS1="$_OLD_VIRTUAL_PS1${_DOCK_MONIKER}"
+    export _OLD_VIRTUAL_PS1
+    PS1="$PS1${_DOCK_MONIKER}"
+  else
+    _UNDOCKED_PS1="$PS1"
+    PS1="$PS1${_DOCK_MONIKER}"
+  fi
+
+  export PS1
+  export _UNDOCKED_PS1
+}
+
+
 # Remove docked condition including command line prompt.
 # Python virtual environment prompt (or lack therof) should remain unchanged.
-function castoff() {
+castoff() {
+  _DOCK_MONIKER="[dock:$DOCK_MONIKER] "
   unset DOCKER_TLS_VERIFY
   unset DOCKER_CERT_PATH
   unset DOCKER_HOST
   unset DOCKER_IP
-  if [ ! -z "$_OLD_VIRTUAL_PS1" ]; then
-    _OLD_VIRTUAL_PS1=${_OLD_VIRTUAL_PS1%${_DOCK_MONIKER}}
-    PS1=${PS1%${_DOCK_MONIKER}}
+
+  if [ -n "$_OLD_VIRTUAL_PS1" ]; then
+    PS1="${PS1%$_DOCK_MONIKER}"
+    _OLD_VIRTUAL_PS1="${_OLD_VIRTUAL_PS1%$_DOCK_MONIKER}"
+    export PS1
+    export _OLD_VIRTUAL_PS1
   else
-    PS1=$_PS1_ORIGINAL
+    PS1="${PS1%$_DOCK_MONIKER}"
   fi
+
   unset _DOCK_MONIKER
+  unset _UNDOCKED_PS1
   unset -f castoff
-  unset _PS1_ORIGINAL
   unset -f sync-up
   unset -f sync-down
   unset -f do-sync-up
@@ -92,18 +119,7 @@ export DOCKER_CERT_PATH=${HOME}/.docker/${DOCK_IP}
 export DOCKER_HOST=tcp://${DOCK_IP}:2377
 export DOCKER_IP=${DOCK_IP}
 
-# Update command line prompt to reflect docked condition.
-# Python virtual environment prompt (or lack therof) should remain unchanged.
-_DOCK_MONIKER="[dock:$DOCK_MONIKER] "
+update_dock_prompt
 
-if [ ! -z "$_OLD_VIRTUAL_PS1" ]; then
-  _PS1_ORIGINAL=${_OLD_VIRTUAL_PS1}
-  export _PS1_ORIGINAL
-  _OLD_VIRTUAL_PS1="${_OLD_VIRTUAL_PS1}$_DOCK_MONIKER"
-else
-  _PS1_ORIGINAL=$PS1
-fi
 
-PS1="$PS1$_DOCK_MONIKER"
-export PS1
-export _DOCK_MONIKER
+
