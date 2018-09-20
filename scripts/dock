@@ -33,6 +33,8 @@ if [ $MONIKER = "none" ]; then
   echo "You can now run secure remote docker commands."
   echo "To undo this configuration:"
   echo "    $ castoff"
+  echo
+  echo "If you do not want your command line prompt to be updated, set DOCKERUTILS_DISABLE_PROMPT=true"
   kill -INT $$
 fi
 
@@ -53,10 +55,7 @@ if [ $FOUND_MONIKER = false ]; then
   kill -INT $$  
 fi
 
-echo "Docking to $DOCK_USER@$DOCK_IP ($DOCK_MONIKER)"
-# echo "MONIKER:$MONIKER"
-# echo "IP:$DOCK_IP"
-# echo "HOSTNAME:$DOCK_HOSTNAME"
+echo "Docking to $DOCK_USER@$DOCK_IP [Moniker: $DOCK_MONIKER]"
 
 if [ -z "$DOCK_IP" ]; then
   kill -INT $$
@@ -69,14 +68,17 @@ update_dock_prompt() {
   export _DOCK_MONIKER
 
   if [ -n "$_OLD_VIRTUAL_PS1" ]; then
-
     _UNDOCKED_PS1="$PS1"
     _OLD_VIRTUAL_PS1="$_OLD_VIRTUAL_PS1${_DOCK_MONIKER}"
     export _OLD_VIRTUAL_PS1
-    PS1="$PS1${_DOCK_MONIKER}"
   else
     _UNDOCKED_PS1="$PS1"
-    PS1="$PS1${_DOCK_MONIKER}"
+  fi
+
+  if [ "$0" == "zsh" ]; then
+    PS1=$PS1${_DOCK_MONIKER}
+  else
+    PS1=$PS1${_DOCK_MONIKER}
   fi
 
   export PS1
@@ -94,13 +96,20 @@ castoff() {
   unset DOCKER_IP
 
   if [ -n "$_OLD_VIRTUAL_PS1" ]; then
-    PS1="${PS1%$_DOCK_MONIKER}"
-    _OLD_VIRTUAL_PS1="${_OLD_VIRTUAL_PS1%$_DOCK_MONIKER}"
-    export PS1
+    if [ "$0" == "zsh" ]; then
+      _OLD_VIRTUAL_PS1="${_OLD_VIRTUAL_PS1%$_DOCK_MONIKER}"
+    else
+      _OLD_VIRTUAL_PS1=${_OLD_VIRTUAL_PS1%"$_DOCK_MONIKER"}
+    fi
     export _OLD_VIRTUAL_PS1
-  else
-    PS1="${PS1%$_DOCK_MONIKER}"
   fi
+
+  if [ "$0" == "zsh" ]; then
+    PS1=${PS1%$_DOCK_MONIKER}
+  else
+    PS1=${PS1%"$_DOCK_MONIKER"}
+  fi
+  export PS1
 
   unset _DOCK_MONIKER
   unset _UNDOCKED_PS1
@@ -119,7 +128,6 @@ export DOCKER_CERT_PATH=${HOME}/.docker/${DOCK_IP}
 export DOCKER_HOST=tcp://${DOCK_IP}:2377
 export DOCKER_IP=${DOCK_IP}
 
-update_dock_prompt
-
-
-
+if [ -z $DOCKERUTILS_DISABLE_PROMPT ]; then
+  update_dock_prompt
+fi

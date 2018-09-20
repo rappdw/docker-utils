@@ -1,0 +1,118 @@
+!#/bin/bash
+
+# To run tests, from project root directory:
+# $ source bin/test_shell
+
+DOCK_INSTANCE=10.93.135.39
+ORIGINAL_PROMPT="$PS1"
+echo "Testing dock/castoff with $DOCK_INSTANCE"
+
+source dock $DOCK_INSTANCE
+deactivate
+castoff
+source activate
+
+source dock $DOCK_INSTANCE
+deactivate
+source activate
+castoff
+
+source dock $DOCK_INSTANCE
+deactivate
+source activate
+castoff
+
+source dock $DOCK_INSTANCE
+castoff
+deactivate
+source activate
+
+source dock $DOCK_INSTANCE
+castoff
+source activate
+deactivate
+
+source dock $DOCK_INSTANCE
+source activate
+deactivate
+castoff
+
+source dock $DOCK_INSTANCE
+source activate
+castoff
+deactivate
+
+deactivate
+source dock $DOCK_INSTANCE
+castoff
+source activate
+
+deactivate
+source dock $DOCK_INSTANCE
+source activate
+castoff
+
+deactivate
+castoff
+source dock $DOCK_INSTANCE
+source activate
+
+deactivate
+castoff
+source activate
+source dock $DOCK_INSTANCE
+
+deactivate
+source activate
+source dock $DOCK_INSTANCE
+castoff
+
+deactivate
+source activate
+castoff
+source dock $DOCK_INSTANCE
+
+source activate
+source dock $DOCK_INSTANCE
+deactivate
+castoff
+
+source activate
+source dock $DOCK_INSTANCE
+castoff
+deactivate
+
+source activate
+deactivate
+source dock $DOCK_INSTANCE
+castoff
+
+source activate
+deactivate
+castoff
+source dock $DOCK_INSTANCE
+
+source activate
+castoff
+source dock $DOCK_INSTANCE
+deactivate
+
+source activate
+castoff
+deactivate
+source dock $DOCK_INSTANCE
+
+
+# Clean Up
+deactivate
+castoff
+echo
+echo "Original Prompt:"
+echo "$ORIGINAL_PROMPT"
+echo "Final Prompt:"
+echo "$PS1"
+if [ "$ORIGINAL_PROMPT" = "$PS1" ]; then
+    echo "Success. Prompt match."
+else
+    echo "FAIL: Prompt mismatch."
+fi
