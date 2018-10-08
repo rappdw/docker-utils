@@ -39,6 +39,7 @@ def build(image, image_name, image_tag, config={}, pull=False):
     if pre_script:
         rc = run_pre_script(pre_script, config=config)
         if rc != 0:
+            print(f'pre-build-script failed: {rc}')
             return rc
 
     rc = 0
@@ -56,6 +57,7 @@ def build(image, image_name, image_tag, config={}, pull=False):
                              f'-f docker/{image}/Dockerfile .')
 
     if rc != 0:
+        print(f'docker build failed: {rc}')
         return rc
 
     if post_script:
@@ -123,11 +125,13 @@ if __name__ == '__main__':
                     image_tag = args.image_tag
 
                 pull_FROM_on_force = False
+                image_config = {}
                 if image in config.sections():
-                    if 'pull_FROM_on_force' in config[image]:
+                    image_config = config[image]
+                    if 'pull_FROM_on_force' in image_config:
                         pull_FROM_on_force = config[image]['pull_FROM_on_force']
 
-                rc = fn(image, image_name, image_tag, config=config.get(image, {}), pull=args.pull_base or (args.force_build_base and pull_FROM_on_force))
+                rc = fn(image, image_name, image_tag, config=image_config, pull=args.pull_base or (args.force_build_base and pull_FROM_on_force))
                 # because an image may not be present on the clean, ignore a non-zero return code
                 if rc and not args.image == 'clean':
                     sys.exit(rc)
