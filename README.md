@@ -77,6 +77,8 @@ docker directory tree. Each of these sections may contain one of the following:
 * `pull_FROM_on_force` - defaults to False, if True, add --pull to build command when force building image (or base image)
 * `image_repo` - the repository to publish the image to
 * `publication_tag` - the tag for publication (full image name + tag) 
+* `pre_build_script` - A shell command or script to run before a docker build is issued
+* `post_build_script` - A shell command or script to run after a docker build has been compeleted (successfully)
 
 ### Synthetic Images
 Additionally, "synthetic" images can be specified by adding a `run-image` section with a `synthetic_images` definition
@@ -102,14 +104,16 @@ tag=experiment.2017.12.16
 ...
 ```
 ### Volume Replacement Variables
-The volume specification may contain replacement variable designations of the form `{var}`. The supported variables
-include:
+
+The volume specification may contain either environment variables (`$name` and `${name}` formats) as well as specific
+variable replacement designations of the form `{var}`.  The supported variables include:
 
 * `project_root` - will be replaced with the root directory name of the project
 * `user` - will be replaced with the user name of the user running the command
 * `project` - replace with project namge
 
 ### Image Push Replacement Variables
+
 * `account` - AWS account designation
 * `region` - AWS region
 * `image` - Image name

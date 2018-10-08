@@ -10,3 +10,4 @@ build
 activate
 .coverage
 .pytest_cache
+.venv

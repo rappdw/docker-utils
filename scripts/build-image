@@ -16,7 +16,31 @@ def is_multistage(mode):
     return 'as builder' in open(f'docker/{mode}/Dockerfile').read()
 
 
-def build(image, image_name, image_tag, pull=False):
+def run_pre_script(script: str, config: dict) -> int:
+    if config.get('run_as_root', False):
+        script = f'sudo {script}'
+
+    print(f'Running pre-build-script: "{script}"')
+    return subprocess.call(shlex.split(script), cwd=os.getcwd())
+
+
+def run_post_script(script: str, config: dict) -> int:
+    if config.get('run_as_root', False):
+        script = f'sudo {script}'
+
+    print(f'Running post-build-script: "{script}"')
+    return subprocess.call(shlex.split(script), cwd=os.getcwd())
+
+
+def build(image, image_name, image_tag, config={}, pull=False):
+    pre_script = config.get('pre_build_script', None)
+    post_script = config.get('post_build_script', None)
+
+    if pre_script:
+        rc = run_pre_script(pre_script, config=config)
+        if rc != 0:
+            return rc
+
     rc = 0
     pull_base = ''
     if pull:
@@ -30,6 +54,13 @@ def build(image, image_name, image_tag, pull=False):
     if not rc:
         rc = image_operation(f'docker build {pull_base} --compress -t {image_name}:{image_tag} '
                              f'-f docker/{image}/Dockerfile .')
+
+    if rc != 0:
+        return rc
+
+    if post_script:
+        rc = run_post_script(post_script, config=config)
+
     return rc
 
 
@@ -96,7 +127,7 @@ if __name__ == '__main__':
                     if 'pull_FROM_on_force' in config[image]:
                         pull_FROM_on_force = config[image]['pull_FROM_on_force']
 
-                rc = fn(image, image_name, image_tag, args.pull_base or (args.force_build_base and pull_FROM_on_force))
+                rc = fn(image, image_name, image_tag, config=config.get(image, {}), pull=args.pull_base or (args.force_build_base and pull_FROM_on_force))
                 # because an image may not be present on the clean, ignore a non-zero return code
                 if rc and not args.image == 'clean':
                     sys.exit(rc)

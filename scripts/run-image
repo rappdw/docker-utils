@@ -45,6 +45,8 @@ def run(mode, image_name, image_tag, **kwargs):
         user=user,
         project=os.path.split(get_root_dir())[1]
     )
+    volumes = os.path.expandvars(volumes)
+
     if kwargs['network']:
         kwargs['network'] = f"--network {kwargs['network']}"
 
