@@ -114,6 +114,9 @@ variable replacement designations of the form `{var}`.  The supported variables 
 
 ### Image Push Replacement Variables
 
+The `publication_tag` may contain either environment variables (`$name` and `${name}` formats) as well as specific
+variable replacement designations of the form `{var}`.  The supported variables include:
+
 * `account` - AWS account designation
 * `region` - AWS region
 * `image` - Image name

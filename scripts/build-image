@@ -17,17 +17,11 @@ def is_multistage(mode):
 
 
 def run_pre_script(script: str, config: dict) -> int:
-    if config.get('run_as_root', False):
-        script = f'sudo {script}'
-
     print(f'Running pre-build-script: "{script}"')
     return subprocess.call(shlex.split(script), cwd=os.getcwd())
 
 
 def run_post_script(script: str, config: dict) -> int:
-    if config.get('run_as_root', False):
-        script = f'sudo {script}'
-
     print(f'Running post-build-script: "{script}"')
     return subprocess.call(shlex.split(script), cwd=os.getcwd())
 
