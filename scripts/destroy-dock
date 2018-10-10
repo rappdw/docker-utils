@@ -76,5 +76,5 @@ if [ -n "$f" ]; then
 fi
 
 if [ -n "$INSTANCE_ID" ]; then
-    aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}"
+    aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}" --output text
 fi

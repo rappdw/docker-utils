@@ -62,7 +62,7 @@ INSTANCE_ID=$(get_instance_id $DOCK_IP)
 
 if [ -n "$INSTANCE_ID" ]; then
     echo "Starting instance..."
-    aws ec2 start-instances --instance-ids "${INSTANCE_ID}"
+    aws ec2 start-instances --instance-ids "${INSTANCE_ID}" --output text
     echo "Waiting for instance to start..."
-    aws ec2 wait system-status-ok --instance-ids $INSTANCE_ID
+    aws ec2 wait system-status-ok --instance-ids $INSTANCE_ID --output text
 fi
