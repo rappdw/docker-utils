@@ -1,0 +1,68 @@
+#!/usr/bin/env bash -e
+
+# Default Values
+MONIKER=${1:-"$DOCKER_IP"}
+GREEN='\033[0;32m'
+NO_COLOR='\033[0m'
+
+print_help() {
+    echo "Start dock - Help"
+    echo
+    echo "Description"
+    echo "  This script uses the aws cli to start an ec2 dock instance that has been stopped."
+    echo "  Either the dock ip or the moniker must be provided"
+    echo
+    echo "Usage"
+    echo "  $ start-dock moniker|ip"
+    echo
+
+    exit 0
+}
+
+if [[ -z "$MONIKER" ]]; then
+    print_help
+    exit -1
+fi
+
+
+# Parse command line arguments in any order
+while getopts 'h' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+  case "${flag}" in
+    h) hflag='true';;
+    *) error "Unexpected option ${flag}" ;;
+  esac
+done
+
+# Look up IP from moniker
+FOUND_MONIKER=false
+for f in $HOME/.docker/*; do
+    if [ -d $f ] && [ -f $f/connection_config.txt ]; then
+      while read -r line; do declare $line; done < "$f/connection_config.txt"
+      if [[ $DOCK_MONIKER = $MONIKER || $DOCK_IP = $MONIKER ]]; then
+        FOUND_MONIKER=true
+        break
+      fi
+    fi
+done
+
+if [ $FOUND_MONIKER = false ]; then
+  echo "Can't find dock configuration for $MONIKER"
+  exit -1
+fi
+
+
+get_instance_id() {
+    aws ec2 describe-instances \
+        --filters Name=private-ip-address,Values="$1" \
+        --query 'Reservations[*].Instances[*].InstanceId' --output text
+}
+
+# start dock
+INSTANCE_ID=$(get_instance_id $DOCK_IP)
+
+if [ -n "$INSTANCE_ID" ]; then
+    echo "Starting instance..."
+    aws ec2 start-instances --instance-ids "${INSTANCE_ID}"
+    echo "Waiting for instance to start..."
+    aws ec2 wait system-status-ok --instance-ids $INSTANCE_ID
+fi

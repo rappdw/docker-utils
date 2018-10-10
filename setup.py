@@ -27,6 +27,7 @@ setup_options = dict(
     scripts=[
         'scripts/create-dock',
         'scripts/build-image',
+        'scripts/destroy-dock',
         'scripts/dock',
         'scripts/dock-sync',
         'scripts/genversion',
@@ -34,6 +35,9 @@ setup_options = dict(
         'scripts/register-dock',
         'scripts/run-image',
         'scripts/run-notebook',
+        'scripts/ssh-dock',
+        'scripts/start-dock',
+        'scripts/stop-dock',
         'scripts/transfer-image'
     ],
     include_package_data=True,
@@ -49,6 +53,7 @@ setup_options = dict(
         'Programming Language :: Python :: 3.7',
     ),
     install_requires=[
+        'aws',
         'boto3'
     ],
     extras_require={

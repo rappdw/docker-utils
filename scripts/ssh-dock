@@ -1,0 +1,32 @@
+#!/usr/bin/env bash -e
+
+if [[ -z "$DOCKER_IP" && -z "$1" ]]; then
+    echo "You must either be docked, or provide a argument specifying the 'moniker' of the dock you want to ssh to"
+    exit -1
+fi
+
+if [ -n "$1" ]; then
+    # Look up IP from moniker
+    FOUND_MONIKER=false
+    for f in $HOME/.docker/*; do
+        if [ -d $f ] && [ -f $f/connection_config.txt ]; then
+          while read -r line; do declare $line; done < "$f/connection_config.txt"
+          if [ $DOCK_MONIKER = $1 ]; then
+            FOUND_MONIKER=true
+            break
+          fi
+        fi
+    done
+
+    if [ $FOUND_MONIKER = false ]; then
+      echo "Can't find dock configuration for $1"
+      exit -1
+    fi
+    DOCKER_IP=$DOCK_IP
+fi
+
+echo "Opening ssh connection to ${DOCKER_IP}"
+ssh ${DOCKER_IP}
+
+
+

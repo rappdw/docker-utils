@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/usr/bin/env bash -e
 
 # Default Values
 INSTANCE_TYPE="m5.xlarge"
@@ -18,16 +18,7 @@ check_aws_connectivity() {
     fi
 }
 
-ensure_dependencies() {
-    if [ -z $(which register-dock) ]; then
-        echo -e "Unable to find required dependencies from docker-utils, something is amiss in your dockerutils installation. Consider updating:"
-        echo -e "  pip install -U dockerutils"
-        exit 1
-    fi
-}
-
 check_aws_connectivity
-ensure_dependencies
 INSTANCE_NAME="${USERNAME}-dock"
 
 confirm_create() {

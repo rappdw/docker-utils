@@ -55,6 +55,17 @@ if it exists, or [rappdw/docker-ds](https://github.com/rappdw/docker-ds) otherwi
 into the container for use in the Juypter notebook environment. There are a couple of environment variable to be aware of 
 with this command:
 
+`create-dock` will start an ec2 instance that can be used for remote docking. This instance is configured to provide 
+secure interaction with the docker server, as well as to support GPU utliziation (`-g` option with `run-image`)
+
+`stop-dock` will change the instances state of a remote dock to `stopped`
+
+`start-dock` will change the instance state of a remote dock to `running`
+
+`destroy-dock` will terminate a remote dock instance and delete any local configuration files
+
+`ssh-dock` opens a terminal on the remote dock with ssh
+
 * DOCKER_DS_DONT_PULL - if set, the version of rappdw/docker-ds currently available will be used rather than pulling 
 the latest version from docker hub.
 * DOCKER_DS_DIFFS - if set,  

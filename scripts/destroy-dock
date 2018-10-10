@@ -1,0 +1,80 @@
+#!/usr/bin/env bash -e
+
+# Default Values
+MONIKER=${1:-none}
+GREEN='\033[0;32m'
+NO_COLOR='\033[0m'
+
+confirm_destroy() {
+    echo -e "Destroy dock with the following values?"
+    echo -e "Instance ID: ${GREEN}${2:-none}${NO_COLOR}"
+    echo -e "Config Dir: ${GREEN}${1:-none}${NO_COLOR}"
+    read -e -p "Type enter to Cancel, h for Help, y to Destroy: " RESPONSE
+
+    if [ "$RESPONSE" == "h" ]; then print_help; fi
+
+}
+
+print_help() {
+    echo "Destroy dock - Help"
+    echo
+    echo "Description"
+    echo "  This script uses the aws cli to terminate an existing ec2 dock instance."
+    echo "  Either the dock ip or the moniker must be provided"
+    echo
+    echo "Usage"
+    echo "  $ destroy-dock moniker|ip"
+    echo
+
+    exit 0
+}
+
+# Parse command line arguments in any order
+while getopts 'h' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+  case "${flag}" in
+    h) hflag='true';;
+    *) error "Unexpected option ${flag}" ;;
+  esac
+done
+
+# Look up IP from moniker
+FOUND_MONIKER=false
+for f in $HOME/.docker/*; do
+    if [ -d $f ] && [ -f $f/connection_config.txt ]; then
+      while read -r line; do declare $line; done < "$f/connection_config.txt"
+      if [ $DOCK_MONIKER = $MONIKER ]; then
+        FOUND_MONIKER=true
+        break
+      fi
+    fi
+done
+
+if [ $FOUND_MONIKER = false ]; then
+  echo "Can't find dock configuration for $MONIKER"
+  exit -1
+fi
+
+
+get_instance_id() {
+    aws ec2 describe-instances \
+        --filters Name=private-ip-address,Values="$1" \
+        --query 'Reservations[*].Instances[*].InstanceId' --output text
+}
+
+# destroy dock
+INSTANCE_ID=$(get_instance_id $DOCK_IP)
+
+# Confirmation
+confirm_destroy "$f" "$INSTANCE_ID"
+if [ "$RESPONSE" != "y" ] && [ "$RESPONSE" != "h" ]; then
+    echo "Canceled"
+    exit 0
+fi
+
+if [ -n "$f" ]; then
+    rm -rf $f
+fi
+
+if [ -n "$INSTANCE_ID" ]; then
+    aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}"
+fi
