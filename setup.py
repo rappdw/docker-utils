@@ -44,16 +44,16 @@ setup_options = dict(
     packages=find_packages(exclude=['tests*']),
     license="MIT License",
     python_requires='>=3.6',
-    classifiers=(
+    classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Natural Language :: English',
         'License :: OSI Approved :: MIT License',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
-    ),
+    ],
     install_requires=[
-        'aws',
+        'awscli',
         'boto3'
     ],
     extras_require={
