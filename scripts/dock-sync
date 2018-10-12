@@ -1,41 +1,69 @@
 #!/usr/bin/env bash
 
+# the need for a seperate sync up and down stems from the filters
+# on sync up we need to use the `:-` filter syntax
+# on sync down we need to use the `.-` filter syntax
+# also on sync down we don't want to use --delete and we add a third parameter that is an additional ignore file
+
+_REMOTE_SHELL_COMMAND="ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
 function do-sync-up() {
+    echo "Syncing $1 to remote dock ($2)"
     if [ -e .gitignore ]; then
-        if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=":- .gitignore" --filter=":- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        else
-          rsync -azq --delete --filter=":- .gitignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        fi
-    else
-        if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=":- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        else
-          rsync -azq --delete -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        fi
+        local HAS_GITIGNORE=1
     fi
+    if [ -e .dockerignore ]; then
+        local HAS_DOCKERIGNORE=1
+    fi
+    rsync -azq --delete \
+        ${HAS_GITIGNORE:+--filter=":- .gitignore"} \
+        ${HAS_DOCKERIGNORE:+--filter=":- .dockerignore"} \
+        -e $_REMOTE_SHELL_COMMAND $1 $2
+    echo "Sync complete"
 }
 
 function do-sync-down() {
+    echo "Syncing from remote dock ($1)"
     if [ -e .gitignore ]; then
-        if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=".- .gitignore" --filter=".- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        else
-          rsync -azq --delete --filter=".- .gitignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        fi
-    else
-        if [ -e .dockerignore ]; then
-          rsync -azq --delete --filter=".- .dockerignore" -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        else
-          rsync -azq --delete -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" --progress $1 $2
-        fi
+        local HAS_GITIGNORE=1
+    fi
+    if [ -e .dockerignore ]; then
+        local HAS_DOCKERIGNORE=1
+    fi
+    set -x
+    rsync -azq \
+        ${HAS_GITIGNORE:+--filter=".- .gitignore"} \
+        ${HAS_DOCKERIGNORE:+--filter=".- .dockerignore"} \
+        ${3:+--exclude=$3} \
+        -e $_REMOTE_SHELL_COMMAND $1 $2
+    set +x
+    echo "Sync complete"
+}
+
+function trim() {
+    local var="$*"
+    # remove leading whitespace characters
+    var="${var#"${var%%[![:space:]]*}"}"
+    # remove trailing whitespace characters
+    var="${var%"${var##*[![:space:]]}"}"
+    echo -n "$var"
+}
+
+function get_version_file() {
+    # first get the directory name for the repo
+    local CODE_DIR=${PWD##*/}
+
+    # now find out where the version file is
+    local LINE=$(grep versionfile_source $PWD/setup.cfg)
+    local FILE=$(trim ${LINE#*=})
+
+    if [[ -f "$PWD/_version.py.bld" && -f "$PWD/$FILE" ]]; then
+        echo -n $CODE_DIR/$FILE
     fi
 }
 
 function sync-up() {
     local user=$(whoami)
-    ssh ubuntu@$DOCKER_IP 'sudo chown -R ubuntu /data/workspaces || true'
-    ssh ubuntu@$DOCKER_IP 'sudo chown -R ubuntu /data/workspaces/'$USER' || true'
     ssh ubuntu@$DOCKER_IP 'mkdir -p /data/workspaces/'$USER'/code'
     do-sync-up $PWD ubuntu@$DOCKER_IP:/data/workspaces/$USER/code
 
@@ -46,21 +74,21 @@ function sync-up() {
         # generate the _version.py.bld
         genversion
 
-        # first get the directory name for the repo
-        local CODE_DIR=${PWD##*/}
+        # get the version file
+        local VER_FILE=$(get_version_file)
 
-        # now find out where the version file is
-        local LINE=$(grep versionfile_source $PWD/setup.cfg)
-        local SPLIT=(${LINE//=/ })
-        local FILE=${SPLIT[1]}
-
-        # finally sync _version.py.bld into the version file
-        do-sync-up $PWD/_version.py.bld ubuntu@$DOCKER_IP:/data/workspaces/$USER/code/$CODE_DIR/$FILE
+        if [ -n "$VER_FILE" ]; then
+            # finally sync _version.py.bld into the version file
+            do-sync-up $PWD/_version.py.bld ubuntu@$DOCKER_IP:/data/workspaces/$USER/code/$VER_FILE
+        fi
     fi
     return 0
 }
 
 function sync-down() {
-    do-sync-down "ubuntu@$DOCKER_IP:/data/workspaces/$(whoami)/code/${PWD##*/}/*" .
+    # if we have a proxy version file, ignore it on the sync down
+    local VER_FILE=$(get_version_file)
+    VER_FILE=${VER_FILE#*/}
+    do-sync-down "ubuntu@$DOCKER_IP:/data/workspaces/$(whoami)/code/${PWD##*/}/*" . ${VER_FILE:+$VER_FILE}
     return 0
 }

@@ -41,6 +41,9 @@ def get_versions():
     return json.loads(version_json)
 
 """.format(json.dumps(version, sort_keys=True, indent=4, separators=(',', ': '))))
+    except AssertionError as e:
+        if str(e) != 'please set versioneer.versionfile_source':
+            raise(e)
     except Exception as e:
         if not str(type(e)) in ["<class \'versioneer.VersioneerBadRootError\'>", "<class \'ModuleNotFoundError\'>"]:
             raise(e)

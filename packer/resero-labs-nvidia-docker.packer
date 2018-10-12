@@ -72,7 +72,7 @@
     {
       "type": "shell",
       "inline": [
-        "sudo mkdir /data",
+        "sudo mkdir -p /data/workspaces",
         "sudo chown -R ubuntu /data"
       ]
     }
