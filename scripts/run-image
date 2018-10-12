@@ -19,9 +19,13 @@ from dockerutils import *
 _base_cmd = 'docker run {init} --name {name} {environment} {keep_container} {interactive} {gpu} {network} ' \
             '{volumes} {ports} {image_name}:{image_tag} {cmd}'
 
-def fetch_env_variables(config, image):
+def fetch_env_variables(config, image, args_env=None):
     # a special use case. retrieve env variables from a config server.
     env_vars = {}
+    if args_env:
+        for arg_env in args_env:
+            env_var = arg_env.split('=')
+            env_vars[env_var[0]] = env_var[1]
     if 'env_var_names' in config.sections():
         endpoint = f"http://{os.environ.get(config['env_var_names']['remote_ip'])}:" \
                    f"{os.environ.get(config['env_var_names']['remote_port'], '5000')}/config"
@@ -88,6 +92,8 @@ if __name__ == '__main__':
                             help="Start the container with gpu support")
         parser.add_argument("-p", "--pre", default=False, action='store_true',
                             help="use pre 1.25 API")
+        parser.add_argument("-e", "--env", action='append',
+                            help="environment variables to pass to running container, e.g. foo=bar")
         args = parser.parse_args()
 
         if args.use_gpu:
@@ -100,7 +106,7 @@ if __name__ == '__main__':
             init = '--init'
 
         run_config = {
-            'environment': fetch_env_variables(config, args.image),
+            'environment': fetch_env_variables(config, args.image, args.env),
             'keep_container': args.keep or '--rm',
             'interactive': '-d' if args.keep else '-it',
             'gpu': gpu,
