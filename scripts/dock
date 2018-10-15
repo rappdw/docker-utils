@@ -106,13 +106,11 @@ export DOCKER_TLS_VERIFY=1
 export DOCKER_CERT_PATH=${HOME}/.docker/${DOCK_IP}
 export DOCKER_HOST=tcp://${DOCK_IP}:2377
 export DOCKER_IP=${DOCK_IP}
+export _DOCK_MONIKER="[dock:$DOCK_MONIKER] "
 
 if [ -z $DOCKERUTILS_DISABLE_PROMPT ]; then
     # Update command line prompt to reflect docked condition.
     # Python virtual environment prompt (or lack therof) should remain unchanged.
-
-    _DOCK_MONIKER="[dock:$DOCK_MONIKER] "
-    export _DOCK_MONIKER
 
     if [ -n "$_OLD_VIRTUAL_PS1" ]; then
         _OLD_VIRTUAL_PS1="$_OLD_VIRTUAL_PS1${_DOCK_MONIKER}"
