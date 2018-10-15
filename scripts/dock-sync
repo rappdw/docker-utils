@@ -1,11 +1,11 @@
-#!/usr/bin/env bash
+#@IgnoreInspection BashAddShebang
+# This file must be used with "source bin/activate" *from bash or zsh*
+# you cannot run it directly
 
 # the need for a seperate sync up and down stems from the filters
 # on sync up we need to use the `:-` filter syntax
 # on sync down we need to use the `.-` filter syntax
 # also on sync down we don't want to use --delete and we add a third parameter that is an additional ignore file
-
-_REMOTE_SHELL_COMMAND="ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 function do-sync-up() {
     echo "Syncing $1 to remote dock ($2)"
@@ -18,7 +18,7 @@ function do-sync-up() {
     rsync -azq --delete \
         ${HAS_GITIGNORE:+--filter=":- .gitignore"} \
         ${HAS_DOCKERIGNORE:+--filter=":- .dockerignore"} \
-        -e $_REMOTE_SHELL_COMMAND $1 $2
+        -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" $1 $2
     echo "Sync complete"
 }
 
@@ -35,7 +35,7 @@ function do-sync-down() {
         ${HAS_GITIGNORE:+--filter=".- .gitignore"} \
         ${HAS_DOCKERIGNORE:+--filter=".- .dockerignore"} \
         ${3:+--exclude=$3} \
-        -e $_REMOTE_SHELL_COMMAND $1 $2
+        -e "ssh -o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null" $1 $2
     set +x
     echo "Sync complete"
 }

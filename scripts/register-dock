@@ -20,6 +20,7 @@ DOCK_HOSTNAME=${2:-none}
 IP=${2:-none}
 MONIKER=${3:-$2}
 PORT=2377
+SSH_OPTIONS="-o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 if [ $USER == "none" ] || [ $DOCK_HOSTNAME == "none" ]; then
   echo "This script will secure the docker daemon socket on a remote server and download the"
@@ -68,7 +69,7 @@ echo "IP:$IP"
 echo "Connecting to ${IP}..."
 
 # If force rebuild flag is not set, then check for already existing key on server and download it.
-if [ $FORCE_REBUILD == false ] && ssh $USER@$IP "[ -f $REMOTE_CONFIG_DIR/ca.pem ]"; then
+if [ $FORCE_REBUILD == false ] && ssh ${SSH_OPTIONS} $USER@$IP "[ -f $REMOTE_CONFIG_DIR/ca.pem ]"; then
     if [ -f ~/.docker/${IP}/ca.pem ]; then
         mv -f ~/.docker/${IP}/ca.pem ~/.docker/${IP}/ca.pem.back
         mv -f ~/.docker/${IP}/key.pem ~/.docker/${IP}/key.pem.back
@@ -82,9 +83,9 @@ if [ $FORCE_REBUILD == false ] && ssh $USER@$IP "[ -f $REMOTE_CONFIG_DIR/ca.pem 
     rm -f ~/.docker/${IP}/cert.pem
 
     # Copy new files from remote host
-    scp $USER@$IP:$REMOTE_CONFIG_DIR/ca.pem ~/.docker/${IP}/ca.pem &&
-    scp $USER@$IP:$REMOTE_CONFIG_DIR/key.pem ~/.docker/${IP}/key.pem &&
-    scp $USER@$IP:$REMOTE_CONFIG_DIR/cert.pem ~/.docker/${IP}/cert.pem &&
+    scp ${SSH_OPTIONS} $USER@$IP:$REMOTE_CONFIG_DIR/ca.pem ~/.docker/${IP}/ca.pem &&
+    scp ${SSH_OPTIONS} $USER@$IP:$REMOTE_CONFIG_DIR/key.pem ~/.docker/${IP}/key.pem &&
+    scp ${SSH_OPTIONS} $USER@$IP:$REMOTE_CONFIG_DIR/cert.pem ~/.docker/${IP}/cert.pem &&
     export DOCKER_TLS_VERIFY=1 &&
     export DOCKER_CERT_PATH=~/.docker/$IP &&
     export DOCKER_HOST=tcp://$IP:$PORT &&
@@ -93,39 +94,39 @@ if [ $FORCE_REBUILD == false ] && ssh $USER@$IP "[ -f $REMOTE_CONFIG_DIR/ca.pem 
     exit 0
 fi
 
-if ssh $USER@$IP "[ -d $REMOTE_CONFIG_DIR ]"; then
+if ssh ${SSH_OPTIONS} $USER@$IP "[ -d $REMOTE_CONFIG_DIR ]"; then
     echo "Backing up remote keys $REMOTE_CONFIG_DIR"
-    ssh $USER@$IP "sudo rm -rf $REMOTE_CONFIG_DIR-back" &&
-    ssh $USER@$IP "sudo cp -rf $REMOTE_CONFIG_DIR $REMOTE_CONFIG_DIR-back" &&
-    ssh $USER@$IP "sudo rm -rf $REMOTE_CONFIG_DIR"
+    ssh ${SSH_OPTIONS} $USER@$IP "sudo rm -rf $REMOTE_CONFIG_DIR-back" &&
+    ssh ${SSH_OPTIONS} $USER@$IP "sudo cp -rf $REMOTE_CONFIG_DIR $REMOTE_CONFIG_DIR-back" &&
+    ssh ${SSH_OPTIONS} $USER@$IP "sudo rm -rf $REMOTE_CONFIG_DIR"
 fi
 
 # echo "Creating CA..."
-ssh $USER@$IP "sudo mkdir -p $REMOTE_CONFIG_DIR" &&
-ssh $USER@$IP "sudo openssl genrsa -aes256 -passout pass:$TEMP_PASS -out $REMOTE_CONFIG_DIR/ca-key.pem 4096" &&
-ssh $USER@$IP "sudo openssl req -new -x509 -days 365 -key $REMOTE_CONFIG_DIR/ca-key.pem -sha256 \
+ssh ${SSH_OPTIONS} $USER@$IP "sudo mkdir -p $REMOTE_CONFIG_DIR" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl genrsa -aes256 -passout pass:$TEMP_PASS -out $REMOTE_CONFIG_DIR/ca-key.pem 4096" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl req -new -x509 -days 365 -key $REMOTE_CONFIG_DIR/ca-key.pem -sha256 \
     -out $REMOTE_CONFIG_DIR/ca.pem -passin pass:$TEMP_PASS \
     -subj '/C=US/ST=Utah/L=Draper/O=Proofpoint/OU=Resero/CN=proofpoint.com'" &&
 sleep 1 &&
-ssh $USER@$IP "sudo openssl genrsa -out $REMOTE_CONFIG_DIR/server-key.pem 4096"
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl genrsa -out $REMOTE_CONFIG_DIR/server-key.pem 4096"
 
 # echo "Creating new docker keys"
-ssh $USER@$IP "sudo openssl req -subj '/CN=$HOSTNAME' -sha256 -new -key $REMOTE_CONFIG_DIR/server-key.pem \
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl req -subj '/CN=$HOSTNAME' -sha256 -new -key $REMOTE_CONFIG_DIR/server-key.pem \
     -out $REMOTE_CONFIG_DIR/server.csr" &&
-ssh $USER@$IP "echo subjectAltName = DNS:\$HOSTNAME,IP:$IP > /tmp/extfile.cnf" &&
-ssh $USER@$IP "sudo mv /tmp/extfile.cnf $REMOTE_CONFIG_DIR/extfile.cnf" &&
-ssh $USER@$IP "sudo openssl x509 -req -days 365 -sha256 -in $REMOTE_CONFIG_DIR/server.csr \
+ssh ${SSH_OPTIONS} $USER@$IP "echo subjectAltName = DNS:\$HOSTNAME,IP:$IP > /tmp/extfile.cnf" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo mv /tmp/extfile.cnf $REMOTE_CONFIG_DIR/extfile.cnf" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl x509 -req -days 365 -sha256 -in $REMOTE_CONFIG_DIR/server.csr \
     -CA $REMOTE_CONFIG_DIR/ca.pem -CAkey $REMOTE_CONFIG_DIR/ca-key.pem -CAcreateserial \
     -out $REMOTE_CONFIG_DIR/server-cert.pem -extfile $REMOTE_CONFIG_DIR/extfile.cnf -passin pass:$TEMP_PASS" &&
-ssh $USER@$IP "sudo openssl genrsa -out $REMOTE_CONFIG_DIR/key.pem 4096" &&
-ssh $USER@$IP "sudo openssl req -subj '/CN=client' -new -key $REMOTE_CONFIG_DIR/key.pem -out $REMOTE_CONFIG_DIR/client.csr" &&
-ssh $USER@$IP "sudo echo extendedKeyUsage = clientAuth > $REMOTE_CONFIG_DIR/extfile.cnf" &&
-ssh $USER@$IP "sudo openssl x509 -req -days 365 -sha256 -in $REMOTE_CONFIG_DIR/client.csr \
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl genrsa -out $REMOTE_CONFIG_DIR/key.pem 4096" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl req -subj '/CN=client' -new -key $REMOTE_CONFIG_DIR/key.pem -out $REMOTE_CONFIG_DIR/client.csr" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo echo extendedKeyUsage = clientAuth > $REMOTE_CONFIG_DIR/extfile.cnf" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo openssl x509 -req -days 365 -sha256 -in $REMOTE_CONFIG_DIR/client.csr \
     -CA $REMOTE_CONFIG_DIR/ca.pem -CAkey $REMOTE_CONFIG_DIR/ca-key.pem -CAcreateserial \
     -out $REMOTE_CONFIG_DIR/cert.pem -extfile $REMOTE_CONFIG_DIR/extfile.cnf -passin pass:$TEMP_PASS" &&
-ssh $USER@$IP "sudo rm -v $REMOTE_CONFIG_DIR/client.csr $REMOTE_CONFIG_DIR/server.csr" &&
-ssh $USER@$IP "sudo chmod 0444 $REMOTE_CONFIG_DIR/ca-key.pem $REMOTE_CONFIG_DIR/key.pem $REMOTE_CONFIG_DIR/server-key.pem" &&
-ssh $USER@$IP "sudo chmod 0444 $REMOTE_CONFIG_DIR/ca.pem $REMOTE_CONFIG_DIR/server-cert.pem $REMOTE_CONFIG_DIR/cert.pem"
+ssh ${SSH_OPTIONS} $USER@$IP "sudo rm -v $REMOTE_CONFIG_DIR/client.csr $REMOTE_CONFIG_DIR/server.csr" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo chmod 0444 $REMOTE_CONFIG_DIR/ca-key.pem $REMOTE_CONFIG_DIR/key.pem $REMOTE_CONFIG_DIR/server-key.pem" &&
+ssh ${SSH_OPTIONS} $USER@$IP "sudo chmod 0444 $REMOTE_CONFIG_DIR/ca.pem $REMOTE_CONFIG_DIR/server-cert.pem $REMOTE_CONFIG_DIR/cert.pem"
 
 ### copy CA to client.
 mkdir -p ~/.docker/${IP} &&
@@ -140,20 +141,20 @@ if [ -f ~/.docker/${IP}/ca.pem ]; then
     mv -f ~/.docker/${IP}/cert.pem ~/.docker/${IP}/cert.pem.back
 fi
 
-scp $USER@$IP:$REMOTE_CONFIG_DIR/ca.pem ~/.docker/${IP}/ca.pem &&
-scp $USER@$IP:$REMOTE_CONFIG_DIR/key.pem ~/.docker/${IP}/key.pem &&
-scp $USER@$IP:$REMOTE_CONFIG_DIR/cert.pem ~/.docker/${IP}/cert.pem &&
+scp ${SSH_OPTIONS} $USER@$IP:$REMOTE_CONFIG_DIR/ca.pem ~/.docker/${IP}/ca.pem &&
+scp ${SSH_OPTIONS} $USER@$IP:$REMOTE_CONFIG_DIR/key.pem ~/.docker/${IP}/key.pem &&
+scp ${SSH_OPTIONS} $USER@$IP:$REMOTE_CONFIG_DIR/cert.pem ~/.docker/${IP}/cert.pem &&
 # TODO: Rather than overwriting the configuration (generally a poor practice)
 # TODO: look at merging the configuration we are interested in, into the configuration
 # TODO: that is already present
-ssh $USER@$IP 'sudo rm -f /etc/docker/daemon.json' &&
+ssh ${SSH_OPTIONS} $USER@$IP 'sudo rm -f /etc/docker/daemon.json' &&
 DOCKER_CFG_FILE=$(python3 -c "import pkg_resources; print(pkg_resources.resource_filename('dockerutils', 'docker-server-daemon.json'))")
-scp $DOCKER_CFG_FILE $USER@$IP:/tmp/daemon.json &&
-ssh $USER@$IP 'sudo mkdir -p /etc/docker/' &&
-ssh $USER@$IP 'sudo mv /tmp/daemon.json /etc/docker/daemon.json' &&
-ssh $USER@$IP 'sudo systemctl stop docker' &&
-ssh $USER@$IP 'sudo systemctl daemon-reload' &&
-ssh $USER@$IP 'sudo systemctl start docker' &&
+scp ${SSH_OPTIONS} $DOCKER_CFG_FILE $USER@$IP:/tmp/daemon.json &&
+ssh ${SSH_OPTIONS} $USER@$IP 'sudo mkdir -p /etc/docker/' &&
+ssh ${SSH_OPTIONS} $USER@$IP 'sudo mv /tmp/daemon.json /etc/docker/daemon.json' &&
+ssh ${SSH_OPTIONS} $USER@$IP 'sudo systemctl stop docker' &&
+ssh ${SSH_OPTIONS} $USER@$IP 'sudo systemctl daemon-reload' &&
+ssh ${SSH_OPTIONS} $USER@$IP 'sudo systemctl start docker' &&
 export DOCKER_TLS_VERIFY=1 &&
 export DOCKER_CERT_PATH=~/.docker/$IP &&
 export DOCKER_HOST=tcp://$IP:$PORT &&
