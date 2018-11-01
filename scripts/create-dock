@@ -2,11 +2,11 @@
 
 # Default Values
 INSTANCE_TYPE="m5.xlarge"
-SUBNET_ID="subnet-0cf3c97675ecb8e82"
 
 MONIKER=
 
 GREEN='\033[0;32m'
+RED='\033[0;31m'
 NO_COLOR='\033[0m'
 
 check_aws_connectivity() {
@@ -41,6 +41,15 @@ print_help() {
     echo "  If no options are passed into the script, it will prompt with defaults."
     echo "  The register-dock script is run automatically after the instance is ready."
     echo
+    echo "  A number of values used in creating the ec2 instance (security-group-ids, etc.) can be over-ridden"
+    echo "  by specifying a ~/.docker/dock.cfg file with the following values:"
+    echo
+    echo '    key_name="..."'
+    echo '    security_group_ids="..."'
+    echo '    iam_instance_profile="..."'
+    echo '    subnet_id="..."'
+    echo '    tag_specifications="..."'
+    echo
     echo "Usage"
     echo "  $ create-dock [options]"
     echo
@@ -54,7 +63,6 @@ print_help() {
 
     echo -e "\n -i instance-type\n    The default instance type is ${INSTANCE_TYPE} (no GPU).\n    Other options include p2.xlarge (GPU), m5.2xlarge, etc."
     echo -e "\n -a ami-id\n    (Optional) The ami to use for the instance."
-    echo -e "\n -s subnet-id\n    (Optional) The subnet-id to use for the instance."
     echo -e "\n -h help\n    This help"
     echo 
     echo "Examples"
@@ -78,15 +86,13 @@ get_private_ip() {
 nflag=''    # dock name flag
 iflag=''    # instance type
 aflag=''    # ami flag
-sflag=''    # subnet flag
 mflag=''    # moniker flag
-while getopts 'hn:i:a:s:m:' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+while getopts 'hn:i:a:m:' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
   case "${flag}" in
     h) hflag='true';;
     n) nflag='true'; INSTANCE_NAME="${OPTARG}" ;;
     i) iflag='true'; INSTANCE_TYPE="${OPTARG}" ;;
     a) aflag='true'; AMI_ID="${OPTARG}" ;;
-    s) sflag='true'; SUBNET_ID="${OPTARG}" ;;
     m) mflag='true'; MONIKER="${OPTARG}" ;;
     *) error "Unexpected option ${flag}" ;;
   esac
@@ -115,19 +121,36 @@ fi
 
 
 # Create dock
+if [ -e "$HOME/.docker/dock.cfg" ]; then
+    source "$HOME/.docker/dock.cfg"
+else
+    key_name="resero-staging"
+    security_group_ids='"sg-213eb35a" "sg-3bde0341" "sg-b93e0dc2" "sg-1bd90461"'
+    iam_instance_profile="lanista-app"
+    subnet_id="subnet-b8b440de"
+    tag_specifications='"ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},\
+            {Key=os,Value=Ubuntu},{Key=os_version,Value=16.04.3},{Key=app_type,Value=model},\
+            {Key=business_unit,Value=\"Archiving & Governance\"},{Key=component,Value=\"ec2 instance\"},\
+            {Key=product,Value=\"Resero Development\"},{Key=support_level,Value=dev},\
+            {Key=created_by,Value=${USERNAME}}]"'
+fi
+if [ ! -f "$HOME/.ssh/$key_name" ]; then
+    echo
+    echo
+    echo -e "${RED}It appears the the key required to access the EC2 instance doesn't exist ($HOME/.ssh/$key_name).${NO_COLOR}"
+    echo
+    echo "Please ensure that the correct ssh-key is configured in ~/.docker/dock.cfg"
+    exit 1
+fi
 INSTANCE_ID=$(aws ec2 run-instances \
-    --subnet-id ${SUBNET_ID} \
+    --subnet-id ${subnet_id} \
     --image-id $AMI_ID \
     --instance-type "${INSTANCE_TYPE}" \
     --block-device-mappings "DeviceName='/dev/sda1',Ebs={VolumeSize=100,VolumeType='gp2'}" \
-    --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},\
-        {Key=os,Value=Ubuntu},{Key=os_version,Value=16.04.3},{Key=app_type,Value=model},\
-        {Key=business_unit,Value=\"Archiving & Governance\"},{Key=component,Value=\"ec2 instance\"},\
-        {Key=product,Value=\"Resero Development\"},{Key=support_level,Value=dev},\
-        {Key=created_by,Value=${USERNAME}}]" \
-    --iam-instance-profile Name=lanista-app \
-    --key-name resero-staging \
-    --security-group-ids "sg-b93e0dc2" "sg-1bd90461" "sg-213eb35a" "sg-a5ac61de" \
+    --tag-specifications "${tag_specifications}" \
+    --iam-instance-profile Name="${iam_instance_profile}"\
+    --key-name "${key_name}" \
+    --security-group-ids "${security_sgroup_ids}" \
     | grep InstanceId | awk -F '"' '{print $4}' \
     )
 
