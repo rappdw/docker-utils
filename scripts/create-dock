@@ -1,4 +1,5 @@
-#!/usr/bin/env bash -e
+#!/usr/bin/env bash
+set -e
 
 # Default Values
 INSTANCE_TYPE="m5.xlarge"

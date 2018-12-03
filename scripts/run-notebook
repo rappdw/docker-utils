@@ -18,7 +18,7 @@ if [ -d "./docker/notebook" ]; then
         run-image notebook
     else
         sync-up
-        run-image dock-notebook
+        run-image notebook
         sync-down
     fi
 else

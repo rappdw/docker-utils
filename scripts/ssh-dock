@@ -1,4 +1,5 @@
-#!/usr/bin/env bash -e
+#!/usr/bin/env bash
+set -e
 
 if [[ -z "$DOCKER_IP" && -z "$1" ]]; then
     echo "You must either be docked, or provide a argument specifying the 'moniker' of the dock you want to ssh to"
