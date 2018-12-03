@@ -84,7 +84,12 @@ if __name__ == '__main__':
         config.optionxform = str
         config.read(os.path.join('docker', 'dockerutils.cfg'))
 
-        gen_version_file()
+        if os.path.isfile('setup.cfg'):
+            config = configparser.ConfigParser()
+            config.optionxform = str
+            config.read('setup.cfg')
+            if 'versioneer' in config:
+                gen_version_file()
 
         with pip_conf(root_dir):
             image_types = get_image_types()
@@ -125,8 +130,9 @@ if __name__ == '__main__':
                     if 'pull_FROM_on_force' in image_config:
                         pull_FROM_on_force = config[image]['pull_FROM_on_force']
 
-                rc = fn(image, image_name, image_tag, config=image_config, pull=args.pull_base or (args.force_build_base and pull_FROM_on_force))
-                # because an image may not be present on the clean, ignore a non-zero return code
-                if rc and not args.image == 'clean':
-                    sys.exit(rc)
+                if os.path.isfile(f'docker/{image}/Dockerfile'):
+                    rc = fn(image, image_name, image_tag, config=image_config, pull=args.pull_base or (args.force_build_base and pull_FROM_on_force))
+                    # because an image may not be present on the clean, ignore a non-zero return code
+                    if rc and not args.image == 'clean':
+                        sys.exit(rc)
     sys.exit(0)

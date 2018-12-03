@@ -65,11 +65,13 @@ function sync-up() {
         genversion
 
         # get the version file
-        local VER_FILE=$(get_version_file)
+        if [ -n "$PWD/setup.cfg" ]; then
+            local VER_FILE=$(get_version_file)
 
-        if [ -n "$VER_FILE" ]; then
-            # finally sync _version.py.bld into the version file
-            do-sync-up $PWD/_version.py.bld ubuntu@$DOCKER_IP:/data/workspaces/$USER/code/$VER_FILE
+            if [ -n "$VER_FILE" ]; then
+                # finally sync _version.py.bld into the version file
+                do-sync-up $PWD/_version.py.bld ubuntu@$DOCKER_IP:/data/workspaces/$USER/code/$VER_FILE
+            fi
         fi
     fi
     return 0
@@ -77,8 +79,11 @@ function sync-up() {
 
 function sync-down() {
     # if we have a proxy version file, ignore it on the sync down
-    local VER_FILE=$(get_version_file)
-    VER_FILE=${VER_FILE#*/}
+    local VER_FILE=
+    if [ -n "$PWD/setup.cfg" ]; then
+        VER_FILE=$(get_version_file)
+        VER_FILE=${VER_FILE#*/}
+    fi
     do-sync-down "ubuntu@$DOCKER_IP:/data/workspaces/$(whoami)/code/${PWD##*/}/*" . ${VER_FILE:+$VER_FILE}
     return 0
 }

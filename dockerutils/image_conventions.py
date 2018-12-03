@@ -38,7 +38,10 @@ def get_image_designation(image, config=None):
 def get_image_name(config, image):
     if image in config.sections():
         if 'name' in config[image]:
-            return f'{get_default_project_name()}-{config[image]["name"]}'
+            if 'prefix' in config[image] and not config[image]['prefix'] in ['False', 'false', 'F', 'f']:
+                return f'{get_default_project_name()}-{config[image]["name"]}'
+            else:
+                return f'{config[image]["name"]}'
     return f'{get_default_project_name()}-{image}'
 
 
