@@ -7,6 +7,7 @@ import sys
 from importlib import import_module
 from . import get_root_dir
 
+
 def gen_version_file(filename='_version.py.bld'):
     """
     Generates a versioneer version file that can be used in
@@ -43,9 +44,8 @@ def get_versions():
 """.format(json.dumps(version, sort_keys=True, indent=4, separators=(',', ': '))))
     except AssertionError as e:
         if str(e) != 'please set versioneer.versionfile_source':
-            raise(e)
+            raise e
     except Exception as e:
         if not str(type(e)) in ["<class \'versioneer.VersioneerBadRootError\'>", "<class \'ModuleNotFoundError\'>"]:
-            raise(e)
+            raise e
         # otherwise, we are operating on a project that isn't versioneer... don't do anything
-

@@ -2,15 +2,18 @@
 
 # Python script to build/clean containers associated for a project
 #
+
+from __future__ import print_function
 import argparse
-import configparser
 import os
 import shlex
 import subprocess
 import sys
-from __future__ import print_function
-
 from dockerutils import *
+if sys.version_info < (3, 0):
+    import ConfigParser as configparser
+else:
+    import configparser
 
 
 def is_multistage(mode):
@@ -27,7 +30,9 @@ def run_post_script(script: str, config: dict) -> int:
     return subprocess.call(shlex.split(script), cwd=os.getcwd())
 
 
-def build(image, image_name, image_tag, config={}, pull=False):
+def build(image, image_name, image_tag, config=None, pull=False):
+    if config is None:
+        config = {}
     pre_script = config.get('pre_build_script', None)
     post_script = config.get('post_build_script', None)
 
@@ -45,15 +50,13 @@ def build(image, image_name, image_tag, config={}, pull=False):
         # if this is a multistage build and it follows the conventions, tag the builder image
         # otherwise, a prune will remove the layers used during the builder phase and subsequent
         # builds will take longer than required
-        rc = image_operation('docker build {pull_base} --compress -t {image_name}-builder:{image_tag} '
-                             '-f docker/{image}/Dockerfile --target builder .'.format(
-            pull_base=pull_base, image_name=image_name, image=image, image_tag=image_tag
-        ))
+        rc = image_operation(
+            'docker build {pull_base} --compress -t {image_name}-builder:{image_tag} -f docker/{image}/Dockerfile --target builder .'
+                .format(pull_base=pull_base, image_name=image_name, image=image, image_tag=image_tag))
     if not rc:
-        rc = image_operation('docker build {pull_base} --compress -t {image_name}:{image_tag} '
-                             '-f docker/{image}/Dockerfile .'.format(
-            pull_base=pull_base, image_name=image_name, image=image, image_tag=image_tag
-        ))
+        rc = image_operation(
+            'docker build {pull_base} --compress -t {image_name}:{image_tag} -f docker/{image}/Dockerfile .'
+                .format(pull_base=pull_base, image_name=image_name, image=image, image_tag=image_tag))
 
     if rc != 0:
         print('docker build failed: {rc}'.format(rc=rc))
@@ -66,9 +69,9 @@ def build(image, image_name, image_tag, config={}, pull=False):
 
 
 def clean(image, image_name, image_tag, pull=False):
-    rc = image_operation(f'docker rmi {image_name}:{image_tag}')
+    rc = image_operation('docker rmi {image_name}:{image_tag}'.format(image_name=image_name, image_tag=image_tag))
     if is_multistage(image):
-        image_operation(f'docker rmi {image_name}-builder:{image_tag}')
+        image_operation('docker rmi {image_name}-builder:{image_tag}'.format(image_name=image_name, image_tag=image_tag))
     return rc
 
 
@@ -105,7 +108,8 @@ if __name__ == '__main__':
                                 action='store_true')
             parser.add_argument("-i", "--image_name", help="use this image name rather than the default")
             parser.add_argument("-t", "--image_tag", help="use this image tag rather than the default")
-            parser.add_argument("-p", "--pull_base", help="pull the base image as part fo the build", action='store_true')
+            parser.add_argument("-p", "--pull_base", help="pull the base image as part fo the build",
+                                action='store_true')
             args = parser.parse_args()
 
             images_to_build = []
@@ -135,8 +139,9 @@ if __name__ == '__main__':
                     if 'pull_FROM_on_force' in image_config:
                         pull_FROM_on_force = config[image]['pull_FROM_on_force']
 
-                if os.path.isfile(f'docker/{image}/Dockerfile'):
-                    rc = fn(image, image_name, image_tag, config=image_config, pull=args.pull_base or (args.force_build_base and pull_FROM_on_force))
+                if os.path.isfile('docker/{image}/Dockerfile'.format(image=image)):
+                    rc = fn(image, image_name, image_tag, config=image_config,
+                            pull=args.pull_base or (args.force_build_base and pull_FROM_on_force))
                     # because an image may not be present on the clean, ignore a non-zero return code
                     if rc and not args.image == 'clean':
                         sys.exit(rc)

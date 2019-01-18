@@ -1,11 +1,12 @@
 """Holds the current working directory context class. A python version of pushd/popd"""
 import os
 
+
 # pylint: disable=too-few-public-methods
-class cd: # pylint: disable=invalid-name
+class cd:  # pylint: disable=invalid-name
     """Context manager for changing the current working directory"""
-    def __init__(self, newPath):
-        self.new_path = os.path.expanduser(newPath)
+    def __init__(self, new_path):
+        self.new_path = os.path.expanduser(new_path)
         self.saved_path = os.getcwd()
 
     def __enter__(self):

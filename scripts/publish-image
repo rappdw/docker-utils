@@ -1,21 +1,25 @@
 #!/usr/bin/env python3
+from __future__ import print_function
+import sys
 import argparse
 import base64
-import configparser
 import getpass
 import os
 import shlex
 import subprocess
-import sys
 import traceback
-
 import boto3
 
 from dockerutils import *
-from __future__ import print_function
+if sys.version_info < (3, 0):
+    import ConfigParser as configparser
+else:
+    import configparser
+
 
 def docker_login_aws(user: str, password: str, endpoint: str):
-    return run(f'docker login -u {user} -p {password} {endpoint}')
+    return run('docker login -u {user} -p {password} {endpoint}'
+               .format(user=user, password=password, endpoint=endpoint))
 
 
 def docker_login_dockerhub():
@@ -23,11 +27,13 @@ def docker_login_dockerhub():
 
 
 def docker_tag(image_name, image_tag, publication_tag):
-    return run(f'docker tag {image_name}:{image_tag} {publication_tag}')
+    return run('docker tag {image_name}:{image_tag} {publication_tag}'
+               .format(image_name=image_name, image_tag=image_tag, publication_tag=publication_tag))
 
 
 def docker_push(publication_tag):
-    return run(f'docker push {publication_tag}')
+    return run('docker push {publication_tag}'.format(publication_tag=publication_tag))
+
 
 def aws_create_repo_if_necessary(ecr_client, image_name):
     try:
@@ -39,10 +45,12 @@ def aws_create_repo_if_necessary(ecr_client, image_name):
         return -1
     return 0
 
+
 def run(cmd: str):
     print('\n\n============================================================================')
     print('{cmd}\n\n'.format(cmd=cmd))
     return subprocess.call(shlex.split(cmd), cwd=os.getcwd())
+
 
 if __name__ == '__main__':
     with cd(get_root_dir()):

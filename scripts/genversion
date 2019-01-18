@@ -5,4 +5,3 @@ from dockerutils import *
 if __name__ == '__main__':
     with cd(get_root_dir()):
         gen_version_file()
-

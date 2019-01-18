@@ -1,26 +1,30 @@
 """Functions that enforce conventions surrounding docker images."""
-import configparser
+import sys
 import logging
 import os
 import getpass
+if sys.version_info < (3, 0):
+    import ConfigParser as configparser
+else:
+    import configparser
 
 logger = logging.getLogger(__name__)
 
 
 def get_root_dir():
-    '''
+    """
     get_root_dir will return the root directory of the project that contains a docker file.
      The constraints for our project with regard to docker are that there id a docker directoy as
      a top level sub-directory under the project root. The project root directory name is the base
      name of the docker file. There are sub-directories under docker that serve as the modes of
      various docker files that will be build (e.g. dev, lanista, jenkins, etc.)
     :return: root_directory for docker builda
-    '''
+    """
     docker_dir = os.path.join(os.getcwd(), 'docker')
     if os.path.exists(docker_dir) and os.path.isdir(docker_dir):
         return os.getcwd()
     else:
-        raise ValueError(f'Unable to find docker directory. Invalid root: {os.getcwd()}')
+        raise ValueError('Unable to find docker directory. Invalid root: {dir}'.format(dir=os.getcwd()))
 
 
 def get_default_project_name():
@@ -32,7 +36,7 @@ def get_image_designation(image, config=None):
         os.path.join(get_root_dir(), os.path.join('docker', 'dockerutils.cfg'))
         config = configparser.ConfigParser()
         config.read(os.path.join(get_root_dir(), os.path.join('docker', 'dockerutils.cfg')))
-    return (get_image_name(config, image), get_image_tag(config, image))
+    return get_image_name(config, image), get_image_tag(config, image)
 
 
 def get_image_name(config, image):
@@ -40,10 +44,16 @@ def get_image_name(config, image):
         if 'name' in config[image]:
             if 'prefix' not in config[image] or \
                     ('prefix' in config[image] and not config[image]['prefix'] in ['False', 'false', 'F', 'f']):
-                return f'{get_default_project_name()}-{config[image]["name"]}'
+                return '{proj_name}-{image_name}'.format(
+                    proj_name=get_default_project_name(),
+                    image_name=config[image]["name"]
+                )
             else:
-                return f'{config[image]["name"]}'
-    return f'{get_default_project_name()}-{image}'
+                return config[image]["name"]
+    return '{proj_name}-{image_name}'.format(
+        proj_name=get_default_project_name(),
+        image_name=image
+    )
 
 
 def get_image_tag(config, image):

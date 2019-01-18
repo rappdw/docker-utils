@@ -2,23 +2,25 @@
 
 # Python script to run containers associated with a project
 #
+from __future__ import print_function
+import sys
 import argparse
-import configparser
 import datetime
 import getpass
-import json
 import os
 import shlex
 import subprocess
-import sys
-import urllib.parse
-import urllib.request
-from __future__ import print_function
 
 from dockerutils import *
+if sys.version_info < (3, 0):
+    import ConfigParser as configparser
+else:
+    import configparser
+
 
 _base_cmd = 'docker run {init} --name {name} {environment} {keep_container} {interactive} {gpu} {network} ' \
             '{volumes} {ports} {image_name}:{image_tag} {cmd}'
+
 
 def fetch_env_variables(config, image, args_env=None):
     # a special use case. retrieve env variables from a config server.
@@ -27,20 +29,11 @@ def fetch_env_variables(config, image, args_env=None):
         for arg_env in args_env:
             env_var = arg_env.split('=')
             env_vars[env_var[0]] = env_var[1]
-    if 'env_var_names' in config.sections():
-        endpoint = f"http://{os.environ.get(config['env_var_names']['remote_ip'])}:" \
-                   f"{os.environ.get(config['env_var_names']['remote_port'], '5000')}/config"
-        try:
-            with urllib.request.urlopen(endpoint, timeout=1) as response_f:
-                response = json.load(response_f)
-                env_vars = response.get('env_variables') or {}
-        except urllib.error.URLError:
-            pass
     if image in config and 'env' in config[image]:
         env_section = config[image]['env']
-        for vars in config[env_section]:
-            env_vars[vars] = config[env_section][vars]
-    return ' '.join([f'-e {key}={value}' for key, value in env_vars.items()])
+        for evars in config[env_section]:
+            env_vars[evars] = config[env_section][evars]
+    return ' '.join(['-e {key}={value}'.format(key=key, value=value) for key, value in env_vars.items()])
 
 
 def run(mode, image_name, image_tag, **kwargs):
@@ -53,12 +46,13 @@ def run(mode, image_name, image_tag, **kwargs):
     volumes = os.path.expandvars(volumes)
 
     if kwargs['network']:
-        kwargs['network'] = f"--network {kwargs['network']}"
+        kwargs['network'] = "--network {network}".format(network=kwargs['network'])
 
     timestamp = datetime.datetime.now().strftime("%y-%m-%d_%H.%M.%S")
     cmd = _base_cmd.format(image_name=image_name,
                            image_tag=image_tag,
-                           name=f"{getpass.getuser()}_{mode}_{timestamp}",
+                           name="{user}_{mode}_{timestamp}".format(
+                               user=getpass.getuser(), mode=mode, timestamp=timestamp),
                            keep_container=kwargs['keep_container'],
                            interactive=kwargs['interactive'],
                            environment=kwargs['environment'],
@@ -122,7 +116,7 @@ if __name__ == '__main__':
 
         if args.image in config.sections():
             for key in run_config.keys():
-                docked_key = f"{key}_docked"
+                docked_key = "{key}_docked".format(key=key)
                 if is_docked and not run_config[key] and docked_key in config[args.image]:
                     run_config[key] = config[args.image][docked_key]
                 elif not run_config[key] and key in config[args.image]:
