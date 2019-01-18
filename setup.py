@@ -2,8 +2,8 @@
 from os import path
 import versioneer
 import sys
-if sys.version_info < (3,6):
-    sys.exit('Sorry, Python < 3.6 is not supported')
+if sys.version_info < (3,0):
+    from io import open
 
 from setuptools import setup, find_packages
 
@@ -47,18 +47,22 @@ setup_options = dict(
     include_package_data=True,
     packages=find_packages(exclude=['tests*']),
     license="MIT License",
-    python_requires='>=3.6',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',
         'Natural Language :: English',
         'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.3',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
     install_requires=[
         'awscli',
-        'boto3'
+        'boto3',
+        'future'
     ],
     extras_require={
         'dev': [

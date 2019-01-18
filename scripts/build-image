@@ -8,21 +8,22 @@ import os
 import shlex
 import subprocess
 import sys
+from __future__ import print_function
 
 from dockerutils import *
 
 
 def is_multistage(mode):
-    return 'as builder' in open(f'docker/{mode}/Dockerfile').read()
+    return 'as builder' in open('docker/{mode}/Dockerfile'.format(mode=mode)).read()
 
 
 def run_pre_script(script: str, config: dict) -> int:
-    print(f'Running pre-build-script: "{script}"')
+    print('Running pre-build-script: "{script}"'.format(script=script))
     return subprocess.call(shlex.split(script), cwd=os.getcwd())
 
 
 def run_post_script(script: str, config: dict) -> int:
-    print(f'Running post-build-script: "{script}"')
+    print('Running post-build-script: "{script}"'.format(script=script))
     return subprocess.call(shlex.split(script), cwd=os.getcwd())
 
 
@@ -33,7 +34,7 @@ def build(image, image_name, image_tag, config={}, pull=False):
     if pre_script:
         rc = run_pre_script(pre_script, config=config)
         if rc != 0:
-            print(f'pre-build-script failed: {rc}')
+            print('pre-build-script failed: {rc}'.format(rc=rc))
             return rc
 
     rc = 0
@@ -44,14 +45,18 @@ def build(image, image_name, image_tag, config={}, pull=False):
         # if this is a multistage build and it follows the conventions, tag the builder image
         # otherwise, a prune will remove the layers used during the builder phase and subsequent
         # builds will take longer than required
-        rc = image_operation(f'docker build {pull_base} --compress -t {image_name}-builder:{image_tag} '
-                             f'-f docker/{image}/Dockerfile --target builder .')
+        rc = image_operation('docker build {pull_base} --compress -t {image_name}-builder:{image_tag} '
+                             '-f docker/{image}/Dockerfile --target builder .'.format(
+            pull_base=pull_base, image_name=image_name, image=image, image_tag=image_tag
+        ))
     if not rc:
-        rc = image_operation(f'docker build {pull_base} --compress -t {image_name}:{image_tag} '
-                             f'-f docker/{image}/Dockerfile .')
+        rc = image_operation('docker build {pull_base} --compress -t {image_name}:{image_tag} '
+                             '-f docker/{image}/Dockerfile .'.format(
+            pull_base=pull_base, image_name=image_name, image=image, image_tag=image_tag
+        ))
 
     if rc != 0:
-        print(f'docker build failed: {rc}')
+        print('docker build failed: {rc}'.format(rc=rc))
         return rc
 
     if post_script:
@@ -69,7 +74,7 @@ def clean(image, image_name, image_tag, pull=False):
 
 def image_operation(operation):
     print('\n\n============================================================================')
-    print(f'{operation}\n\n')
+    print('{operation}\n\n'.format(operation=operation))
     return subprocess.call(shlex.split(operation), cwd=os.getcwd())
 
 

@@ -13,6 +13,7 @@ import subprocess
 import sys
 import urllib.parse
 import urllib.request
+from __future__ import print_function
 
 from dockerutils import *
 
@@ -68,7 +69,7 @@ def run(mode, image_name, image_tag, **kwargs):
                            cmd=kwargs['cmd'],
                            init=kwargs['init'])
     print('\n\n============================================================================')
-    print(f'{cmd}\n\n')
+    print('{cmd}\n\n'.format(cmd=cmd))
     return subprocess.call(shlex.split(cmd), cwd=os.getcwd())
 
 

@@ -12,7 +12,7 @@ import traceback
 import boto3
 
 from dockerutils import *
-
+from __future__ import print_function
 
 def docker_login_aws(user: str, password: str, endpoint: str):
     return run(f'docker login -u {user} -p {password} {endpoint}')
@@ -41,7 +41,7 @@ def aws_create_repo_if_necessary(ecr_client, image_name):
 
 def run(cmd: str):
     print('\n\n============================================================================')
-    print(f'{cmd}\n\n')
+    print('{cmd}\n\n'.format(cmd=cmd))
     return subprocess.call(shlex.split(cmd), cwd=os.getcwd())
 
 if __name__ == '__main__':
