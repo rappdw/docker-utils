@@ -4,9 +4,9 @@ import logging
 import os
 import getpass
 if sys.version_info < (3, 0):
-    import ConfigParser as configparser
+    from ConfigParser import ConfigParser
 else:
-    import configparser
+    from configparser import ConfigParser
 
 logger = logging.getLogger(__name__)
 
@@ -34,22 +34,22 @@ def get_default_project_name():
 def get_image_designation(image, config=None):
     if not config:
         os.path.join(get_root_dir(), os.path.join('docker', 'dockerutils.cfg'))
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         config.read(os.path.join(get_root_dir(), os.path.join('docker', 'dockerutils.cfg')))
     return get_image_name(config, image), get_image_tag(config, image)
 
 
 def get_image_name(config, image):
     if image in config.sections():
-        if 'name' in config[image]:
-            if 'prefix' not in config[image] or \
-                    ('prefix' in config[image] and not config[image]['prefix'] in ['False', 'false', 'F', 'f']):
+        if 'name' in config.options(image):
+            if 'prefix' not in config.options(image) or \
+                    ('prefix' in config.options(image) and not config.get(image, 'prefix') in ['False', 'false', 'F', 'f']):
                 return '{proj_name}-{image_name}'.format(
                     proj_name=get_default_project_name(),
-                    image_name=config[image]["name"]
+                    image_name=config.get(image, "name")
                 )
             else:
-                return config[image]["name"]
+                return config.get(image, "name")
     return '{proj_name}-{image_name}'.format(
         proj_name=get_default_project_name(),
         image_name=image
@@ -58,8 +58,8 @@ def get_image_name(config, image):
 
 def get_image_tag(config, image):
     if image in config.sections():
-        if 'tag' in config[image]:
-            return config[image]['tag']
+        if 'tag' in config.options(image):
+            return config.get(image, 'tag')
     return getpass.getuser()
 
 

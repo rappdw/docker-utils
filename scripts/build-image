@@ -11,21 +11,21 @@ import subprocess
 import sys
 from dockerutils import *
 if sys.version_info < (3, 0):
-    import ConfigParser as configparser
+    from ConfigParser import ConfigParser
 else:
-    import configparser
+    from configparser import ConfigParser
 
 
 def is_multistage(mode):
     return 'as builder' in open('docker/{mode}/Dockerfile'.format(mode=mode)).read()
 
 
-def run_pre_script(script: str, config: dict) -> int:
+def run_pre_script(script, config):
     print('Running pre-build-script: "{script}"'.format(script=script))
     return subprocess.call(shlex.split(script), cwd=os.getcwd())
 
 
-def run_post_script(script: str, config: dict) -> int:
+def run_post_script(script, config):
     print('Running post-build-script: "{script}"'.format(script=script))
     return subprocess.call(shlex.split(script), cwd=os.getcwd())
 
@@ -88,12 +88,12 @@ if __name__ == '__main__':
         print(str(e))
         sys.exit(1)
     with cd(root_dir):
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         config.optionxform = str
         config.read(os.path.join('docker', 'dockerutils.cfg'))
 
         if os.path.isfile('setup.cfg'):
-            config_versioneer = configparser.ConfigParser()
+            config_versioneer = ConfigParser()
             config_versioneer.optionxform = str
             config_versioneer.read('setup.cfg')
             if 'versioneer' in config_versioneer:
@@ -135,9 +135,9 @@ if __name__ == '__main__':
                 pull_FROM_on_force = False
                 image_config = {}
                 if image in config.sections():
-                    image_config = config[image]
+                    image_config = config.options(image)
                     if 'pull_FROM_on_force' in image_config:
-                        pull_FROM_on_force = config[image]['pull_FROM_on_force']
+                        pull_FROM_on_force = config.get(image, 'pull_FROM_on_force')
 
                 if os.path.isfile('docker/{image}/Dockerfile'.format(image=image)):
                     rc = fn(image, image_name, image_tag, config=image_config,

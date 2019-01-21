@@ -13,9 +13,9 @@ import subprocess
 
 from dockerutils import *
 if sys.version_info < (3, 0):
-    import ConfigParser as configparser
+    from ConfigParser import ConfigParser
 else:
-    import configparser
+    from configparser import ConfigParser
 
 
 _base_cmd = 'docker run {init} --name {name} {environment} {keep_container} {interactive} {gpu} {network} ' \
@@ -69,12 +69,12 @@ def run(mode, image_name, image_tag, **kwargs):
 
 if __name__ == '__main__':
     with cd(get_root_dir()):
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         config.optionxform = str
         config.read(os.path.join('docker', 'dockerutils.cfg'))
 
-        if 'run_image' in config and 'synthetic_images' in config['run_image']:
-            image_types = get_image_types(config['run_image']['synthetic_images'].split(','))
+        if 'run_image' in config.sections() and 'synthetic_images' in config.options('run_image'):
+            image_types = get_image_types(config.get('run_image', 'synthetic_images').split(','))
         else:
             image_types = get_image_types()
 
@@ -117,10 +117,10 @@ if __name__ == '__main__':
         if args.image in config.sections():
             for key in run_config.keys():
                 docked_key = "{key}_docked".format(key=key)
-                if is_docked and not run_config[key] and docked_key in config[args.image]:
-                    run_config[key] = config[args.image][docked_key]
-                elif not run_config[key] and key in config[args.image]:
-                    run_config[key] = config[args.image][key]
+                if is_docked and not run_config[key] and docked_key in config.options(args.image):
+                    run_config[key] = config.get(args.image, docked_key)
+                elif not run_config[key] and key in config.options(args.image):
+                    run_config[key] = config.get(args.image, key)
 
         image_name, image_tag = get_image_designation(args.image, config)
 

@@ -12,12 +12,12 @@ import boto3
 
 from dockerutils import *
 if sys.version_info < (3, 0):
-    import ConfigParser as configparser
+    from ConfigParser import ConfigParser
 else:
-    import configparser
+    from configparser import ConfigParser
 
 
-def docker_login_aws(user: str, password: str, endpoint: str):
+def docker_login_aws(user, password, endpoint):
     return run('docker login -u {user} -p {password} {endpoint}'
                .format(user=user, password=password, endpoint=endpoint))
 
@@ -46,7 +46,7 @@ def aws_create_repo_if_necessary(ecr_client, image_name):
     return 0
 
 
-def run(cmd: str):
+def run(cmd):
     print('\n\n============================================================================')
     print('{cmd}\n\n'.format(cmd=cmd))
     return subprocess.call(shlex.split(cmd), cwd=os.getcwd())
@@ -54,7 +54,7 @@ def run(cmd: str):
 
 if __name__ == '__main__':
     with cd(get_root_dir()):
-        config = configparser.ConfigParser()
+        config = ConfigParser()
         config.optionxform = str
         config.read(os.path.join('docker', 'dockerutils.cfg'))
 
@@ -75,8 +75,8 @@ if __name__ == '__main__':
         }
         if args.image in config.sections():
             for key in push_config.keys():
-                if not push_config[key] and key in config[args.image]:
-                    push_config[key] = config[args.image][key]
+                if not push_config[key] and key in config.options(args.image):
+                    push_config[key] = config.get(args.image, key)
 
         image_name, image_tag = get_image_designation(args.image, config)
 
