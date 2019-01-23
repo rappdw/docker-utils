@@ -2,7 +2,7 @@
 set -e
 
 # Default Values
-INSTANCE_TYPE="m5.xlarge"
+INSTANCE_TYPE="c5.xlarge"
 
 MONIKER=
 
@@ -20,7 +20,6 @@ check_aws_connectivity() {
 }
 
 check_aws_connectivity
-INSTANCE_NAME="${USERNAME}-dock"
 
 confirm_create() {
     if [ -z "$1" ]; then
@@ -64,6 +63,7 @@ print_help() {
 
     echo -e "\n -i instance-type\n    The default instance type is ${INSTANCE_TYPE} (no GPU).\n    Other options include p2.xlarge (GPU), m5.2xlarge, etc."
     echo -e "\n -a ami-id\n    (Optional) The ami to use for the instance."
+    echo -e "\n -s skip-regisration\n    (Optional) Skip running register-dock."
     echo -e "\n -h help\n    This help"
     echo
     echo "Examples"
@@ -84,21 +84,25 @@ get_private_ip() {
 
 
 # Parse command line arguments in any order
+hflag=''
 nflag=''    # dock name flag
 iflag=''    # instance type
 aflag=''    # ami flag
 mflag=''    # moniker flag
-while getopts 'hn:i:a:m:' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+regflag='true'
+while getopts 'hn:i:a:m:s' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
   case "${flag}" in
     h) hflag='true';;
     n) nflag='true'; INSTANCE_NAME="${OPTARG}" ;;
     i) iflag='true'; INSTANCE_TYPE="${OPTARG}" ;;
     a) aflag='true'; AMI_ID="${OPTARG}" ;;
     m) mflag='true'; MONIKER="${OPTARG}" ;;
+    s) regflag='';;
     *) error "Unexpected option ${flag}" ;;
   esac
 done
 
+INSTANCE_NAME="${USERNAME}-${MONIKER:-dock}"
 
 # Help
 if [ -n "$hflag" ] || [ "$RESPONSE" == "h" ]; then
@@ -106,7 +110,7 @@ if [ -n "$hflag" ] || [ "$RESPONSE" == "h" ]; then
 fi
 
 if [ -z "$AMI_ID" ]; then
-    AMI_ID=$(aws ec2 describe-images --filters "Name=tag:Name,Values=resero-labs-nvidia-docker" --query 'Images[*].{ID:ImageId}' --output text)
+    AMI_ID=$(aws ec2 describe-images --filters "Name=tag:Name,Values=resero-labs-dlami" --query 'Images[*].{ID:ImageId}' --output text)
     if [ -z "$AMI_ID" ]; then
         echo "Unable to fetch default AMI ID."
         exit 1
@@ -161,9 +165,14 @@ if [ ! -z "$INSTANCE_ID" ]; then
 
     IP_ADDRESS=$(get_private_ip $INSTANCE_ID)
 
-    if [ $(echo $IP_ADDRESS | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}') == 1 ]; then
-        echo 'Registering secure remote docker api'
-        register-dock ubuntu "$IP_ADDRESS" "$MONIKER" "$INSTANCE_ID"
+    if [ -n "$regflag" ]; then
+        if [ $(echo $IP_ADDRESS | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}') == 1 ]; then
+            echo 'Registering secure remote docker api'
+            register-dock ubuntu "$IP_ADDRESS" "$MONIKER" "$INSTANCE_ID"
+        fi
+    else
+        mkdir -p ~/.docker/${IP_ADDRESS}
+        printf "DOCK_INSTANCE_ID=$INSTANCE_ID\nDOCK_USER=ubuntu\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$IP_ADDRESS\nDOCK_IP=$IP_ADDRESS\n" > $HOME/.docker/${IP_ADDRESS}/connection_config.txt
     fi
 
     echo "New EC2 instance available to dock at $IP_ADDRESS"
