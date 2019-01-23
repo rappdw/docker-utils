@@ -92,7 +92,7 @@ if __name__ == '__main__':
         args = parser.parse_args()
 
         if args.use_gpu:
-            gpu = '--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all -e CPU_GPU_ENV=/gpu-env'
+            gpu = '--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all'
         else:
             gpu = ''
         if args.pre:
