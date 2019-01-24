@@ -3,14 +3,15 @@
 We are using verison 20.0 (ami-0d0ff0945ae093aea) currently, but have modified it (by hand) to create our base image
 The modifications are as follows:
 
-1) ssh into image and wait for unattended upgrade to finish (time out) about 10 minutes
-2) reboot
-3) apt-get upgrade
-4) reboot
-5) apt-get remove docker-ce nvidia-docker2
-6) run the "docker install" section of the setup.sh file
-7) run the "docker configure" section of the setup.sh file (change "unix://" to "fd://")
-8) apt-get upgrade
-9) conda update -n base -c defaults conda
-10) edit .profile, .dlamirc, .zshrc remove conda path and source /home/ubuntu/anaconda3/etc/profile.d/conda.sh in .profile
-11) modify MOTD replace "source activate" with "conda activate" (/etc/update-motd.d/00-header)
+1) ssh into image
+2) Wait for /var/log/unattended-upgrades/unattended-upgrades.log to emit a line
+that looks like: `2019-01-24 17:52:10,320 INFO All upgrades installed` (shoudl be aobut 15 minutes)
+3) reboot
+4) run upgrade.sh script
+
+Because this takes such a long time, go ahead and create an image from this instance
+and use that as the base instead of building it into the packer script.
+
+Optionally, we may want to consider running the upgrade-docker script in this 
+directory, but we are not currently doing so.
+

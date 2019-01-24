@@ -19,7 +19,6 @@ USER=${1:-none}
 DOCK_HOSTNAME=${2:-none}
 IP=${2:-none}
 MONIKER=${3:-$2}
-INSTANCE_ID=${3:-none}
 PORT=2377
 SSH_OPTIONS="-o LogLevel=error -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
@@ -159,5 +158,5 @@ ssh ${SSH_OPTIONS} $USER@$IP 'sudo systemctl start docker' &&
 export DOCKER_TLS_VERIFY=1 &&
 export DOCKER_CERT_PATH=~/.docker/$IP &&
 export DOCKER_HOST=tcp://$IP:$PORT &&
-printf "DOCK_INSTANCE_ID=$INSTANCE_ID\nDOCK_USER=$USER\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$DOCK_HOSTNAME\nDOCK_IP=$IP\n" > $HOME/.docker/${IP}/connection_config.txt &&
+printf "DOCK_USER=$USER\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$DOCK_HOSTNAME\nDOCK_IP=$IP\n" > $HOME/.docker/${IP}/connection_config.txt &&
 docker version

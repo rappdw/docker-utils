@@ -1,7 +1,7 @@
 {
   "builders": [
     {
-      "ami_name": "resero-labs-nvidia-docker-2019.01.1",
+      "ami_name": "resero-labs-dlami-2019.01",
       "type": "amazon-ebs",
       "force_deregister": "true",
       "instance_type": "p3.2xlarge",
@@ -22,12 +22,12 @@
         "sg-b93e0dc2",
         "sg-1bd90461"
       ],
-      "source_ami": "ami-09eb876a926ae86db",
+      "source_ami": "ami-092c2df3c28ec89b3",
       "ssh_username": "ubuntu",
       "iam_instance_profile": "lanista-app",
       "subnet_id": "subnet-b8b440de",
       "tags": {
-        "Name": "resero-labs-nvidia-docker-latest"
+        "Name": "resero-labs-dlami-latest"
       }
     }
   ],
@@ -35,33 +35,33 @@
   "provisioners": [
     {
       "type": "file",
-      "source": "upgrade.sh",
-      "destination": "/home/ubuntu/upgrade.sh"
+      "source": "configure-docker.sh",
+      "destination": "/home/ubuntu/configure-docker.sh"
     },
     {
       "type": "file",
-      "source": "setup.sh",
-      "destination": "/home/ubuntu/setup.sh"
+      "source": "update-anaconda.sh",
+      "destination": "/home/ubuntu/update-anaconda.sh"
+    },
+    {
+      "type": "file",
+      "source": "configure-jupyter.sh",
+      "destination": "/home/ubuntu/configure-jupyter.sh"
+    },
+    {
+      "type": "file",
+      "source": "jupyter_notebook_config.py",
+      "destination": "/home/ubuntu/.jupyter/jupyter_notebook_config.py"
     },
     {
       "type": "shell",
       "inline": [
-        "sudo /home/ubuntu/upgrade.sh"
-      ],
-      "expect_disconnect": true
-    },
-    {
-      "type": "shell",
-      "inline": [
-        "rm /home/ubuntu/upgrade.sh",
-        "sudo /home/ubuntu/setup.sh",
-        "rm /home/ubuntu/setup.sh"
-      ],
-      "pause_before": "30s"
-    },
-    {
-      "type": "shell",
-      "inline": [
+        "/home/ubuntu/configure-docker.sh",
+        "/home/ubuntu/update-anaconda.sh",
+        "/home/ubuntu/configure-jupyter.sh",
+        "rm /home/ubuntu/configure-docker.sh",
+        "rm /home/ubuntu/update-anaconda.sh",
+        "rm /home/ubuntu/configure-jupyter.sh",
         "sudo mkdir -p /data/workspaces",
         "sudo chown -R ubuntu /data"
       ]
