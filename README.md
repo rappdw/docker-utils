@@ -5,10 +5,25 @@
 [![Python 3.4](https://img.shields.io/badge/python-3.4-blue.svg)](https://www.python.org/downloads/release/python-340/) 
 [![Python 2.7](https://img.shields.io/badge/python-2.7-blue.svg)](https://www.python.org/downloads/release/python-270/) 
 
-# Docker Utilities/Patterns for Python Projects
+# Docker Utilities/Patterns
 
-`dockerutils` defines a set of patterns and utilities to facilitate use of docker with a python app or library 
-facilitating:
+Dockerutils is a set of utilities and conventions around their use. The intent behind these utilities is to provide a 
+very light layer of abstraction to: simplify interaction with docker; support seamlessly running docker locally or on 
+ec2 instance in AWS; allow for multiple images per project; etc.
+
+Perhaps the best way to think of dockerutils is that it embodies two entities, commonly used when working
+with docker, and a set of complementary commands for working with those entities. The two entities are:
+* "dock" - the server that is hosing docker (by default, localhost)
+* image - the standard docker image
+
+The commands used to operate against these entities are:
+
+| CommandSet /  Entity |         Creation         |       Execution      |   Notebook   |            Utility           |
+|----------------------|:------------------------:|:--------------------:|:------------:|:----------------------------:|
+|         Dock         | create-dock <br/> destroy-dock | start-dock <br/> stop-dock | nb-dock      | source dock <br/> ls-dock <br/> ssh-dock |
+|         Image        | build-image              | run-image            | run-notebook | publish-image <br/> transfer-image |
+
+Possible use cases include:
 * seperating development/test dependencies out of production container, e.g. production container vs. dev/test container
 * seperating data science notebook container from execution container
 * environment experimentation
@@ -64,7 +79,7 @@ with this command:
 
 * DOCKER_DS_DONT_PULL - if set, the version of rappdw/docker-ds currently available will be used rather than pulling 
 the latest version from docker hub.
-* DOCKER_DS_DIFFS - if set,  
+* RESERO_JUPYTER_DIFFS - if set, on save, `.py` files and `.html` files for the notebook will be created in a `.diffs` subdirectory.  
 
 ### Dock cli
 
@@ -83,6 +98,10 @@ secure interaction with the docker server, as well as to support GPU utliziation
 `start-dock` will change the instance state of a remote dock to `running`
 
 `ssh-dock` opens a terminal on the remote dock with ssh
+
+`ls-dock` list (including state) any created docks
+
+`nb-dock` run jupyter on the bare AMI of the dock and open a browser window to the notebook server
 
 ## `dockerutils.cfg` Format
 Configuration in `docker/dockerutils.cfg` is used to configure behavior of the `dockerutils` scripts.
