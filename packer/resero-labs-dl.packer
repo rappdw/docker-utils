@@ -54,6 +54,12 @@
       "destination": "/home/ubuntu/.jupyter/jupyter_notebook_config.py"
     },
     {
+      "type": "shell",
+      "inline": [
+        "mkdir /home/ubuntu/.aws"
+      ]
+    },
+    {
       "type": "file",
       "source": "aws_config.cfg",
       "destination": "/home/ubuntu/.aws/config"
