@@ -13,6 +13,7 @@ c.NotebookApp.kernel_spec_manager_class = 'environment_kernels.EnvironmentKernel
 c.EnvironmentKernelSpecManager.display_name_template="{}"
 c.EnvironmentKernelSpecManager.conda_prefix_template="{}"
 c.NotebookApp.iopub_data_rate_limit = 10000000000
+c.NotebookApp.open_browser = False
 
 session_params = ''
 try:

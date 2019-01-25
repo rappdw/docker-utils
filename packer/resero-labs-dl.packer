@@ -54,6 +54,11 @@
       "destination": "/home/ubuntu/.jupyter/jupyter_notebook_config.py"
     },
     {
+      "type": "file",
+      "source": "aws_config.cfg",
+      "destination": "/home/ubuntu/.aws/config"
+    },
+    {
       "type": "shell",
       "inline": [
         "/home/ubuntu/configure-docker.sh",
