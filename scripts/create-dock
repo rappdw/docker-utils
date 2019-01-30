@@ -150,6 +150,7 @@ INSTANCE_ID=$(aws ec2 run-instances \
     --subnet-id ${subnet_id} \
     --image-id $AMI_ID \
     --instance-type "${INSTANCE_TYPE}" \
+    --disable-api-termination \
     --block-device-mappings "DeviceName='/dev/sda1',Ebs={VolumeSize=100,VolumeType='gp2'}" \
     --tag-specifications "${tag_specifications}" \
     --iam-instance-profile Name="${iam_instance_profile}" \
@@ -168,7 +169,7 @@ if [ ! -z "$INSTANCE_ID" ]; then
     if [ -n "$regflag" ]; then
         if [ $(echo $IP_ADDRESS | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}') == 1 ]; then
             echo 'Registering secure remote docker api'
-            register-dock ubuntu "$IP_ADDRESS" "$MONIKER" "$INSTANCE_ID"
+            register-dock -f ubuntu "$IP_ADDRESS" "$MONIKER" "$INSTANCE_ID"
         fi
     else
         mkdir -p ~/.docker/${IP_ADDRESS}
