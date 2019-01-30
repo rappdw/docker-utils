@@ -3,6 +3,7 @@ set -e
 
 # Default Values
 MONIKER=${1:-"$DOCKER_IP"}
+shift
 GREEN='\033[0;32m'
 NO_COLOR='\033[0m'
 
@@ -27,14 +28,14 @@ print_help() {
     echo "    -f   Disable termination protection and then terminate" 
     echo
     echo "Usage"
-    echo "  $ destroy-dock <-f> moniker|ip"
+    echo "  $ destroy-dock moniker|ip <-f>"
     echo
 
     exit 0
 }
 
 # Parse command line arguments in any order
-disable_terminate_protection=no
+disable_terminate_protection=false
 while getopts 'hf' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
   case "${flag}" in
     h) hflag='true';;
@@ -77,15 +78,16 @@ if [ "$RESPONSE" != "y" ] && [ "$RESPONSE" != "h" ]; then
     exit 0
 fi
 
-if [ -n "$f" ]; then
-    rm -rf $f
-fi
-
 if [ -n "$INSTANCE_ID" ]; then
   if ${disable_terminate_protection}; then
     for I in $INSTANCE_ID; do
-      aws ec2 modify-instance-attribute --disable-api-termination --instance-id 
+      aws ec2 modify-instance-attribute --no-disable-api-termination --instance-id "$I"
     done
   fi
   aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}" --output text
 fi
+
+if [ -n "$f" ]; then
+    rm -rf $f
+fi
+
