@@ -46,7 +46,7 @@ that looks like: `2019-01-24 17:52:10,320 INFO All upgrades installed` (should b
 10) Validate the new ami
 
     ```bash
-    create-dock -a <new-resero-labs-dlami> -m test-ami -i p3.2xlarge
+    create-dock -a <resero-labs-dlami-candidate> -m test-ami -i p3.2xlarge
     source dock test-ami
     docker images
     ssh-dock
