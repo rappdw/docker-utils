@@ -11,6 +11,8 @@ import os
 import shlex
 import subprocess
 
+from string import Template
+
 from dockerutils import *
 if sys.version_info < (3, 0):
     from ConfigParser import ConfigParser
@@ -34,6 +36,24 @@ def fetch_env_variables(config, image, args_env=None):
         for evars in config.options(env_section):
             env_vars[evars] = config.get(env_section, evars)
     return ' '.join(['-e {key}={value}'.format(key=key, value=value) for key, value in env_vars.items()])
+
+
+def populate_aws_env_variables():
+    AWS_ENVS = [
+        'AWS_ACCESS_KEY_ID',
+        'AWS_SECRET_ACCESS_KEY',
+        'AWS_DEFAULT_REGION',
+        'AWS_REGION',
+        'AWS_SESSION_TOKEN',
+        'AWS_SECURITY_TOKEN'
+    ]
+
+    variables = {}
+    for test_env in AWS_ENVS:
+        if os.getenv(test_env):
+            variables[test_env] = "${" + test_env + "}"
+
+    return ' '.join(['-e {key}={value}'.format(key=k, value=v) for k,v in variables.items()])
 
 
 def run(mode, image_name, image_tag, **kwargs):
@@ -64,7 +84,11 @@ def run(mode, image_name, image_tag, **kwargs):
                            init=kwargs['init'])
     print('\n\n============================================================================')
     print('{cmd}\n\n'.format(cmd=cmd))
-    return subprocess.call(shlex.split(cmd), cwd=os.getcwd())
+
+    # Since we are using secure env values I don't want those to print in the above commmand, but
+    #   they need to be expanded for the subprocess.call
+    expanded_cmd = Template(cmd).substitute(os.environ)
+    return subprocess.call(shlex.split(expanded_cmd), cwd=os.getcwd())
 
 
 if __name__ == '__main__':
@@ -101,7 +125,7 @@ if __name__ == '__main__':
             init = '--init'
 
         run_config = {
-            'environment': fetch_env_variables(config, args.image, args.env),
+            'environment': fetch_env_variables(config, args.image, args.env) + populate_aws_env_variables(),
             'keep_container': args.keep or '--rm',
             'interactive': '-d' if args.keep else '-it',
             'gpu': gpu,
