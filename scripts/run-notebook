@@ -4,6 +4,7 @@ DOCKER_DS_DONT_PULL=${DOCKER_DS_DONT_PULL:-pull}
 DOCKER_DS_DIFFS=${DOCKER_DS_DIFFS:-no_diffs}
 
 DOCKER_ENV=""
+NOTEBOOK_IMAGE=resero/docker-ds
 
 . dock-sync
 
@@ -31,8 +32,8 @@ fi
 AWS_ENV_NAMES=('AWS_ACCESS_KEY_ID' 'AWS_SECRET_ACCESS_KEY' 'AWS_DEFAULT_REGION' 'AWS_REGION' 'AWS_SESSION_TOKEN' 'AWS_SECURITY_TOKEN')
 AWS_ENV=''
 for aws_env in ${AWS_ENV_NAMES[@]}; do
-    if [ ! -z "$aws_env" ]; then
-        AWS_ENV+=" -e $e=\${$e}"
+    if [ ! -z "${!aws_env}" ]; then
+        AWS_ENV+=" -e $aws_env=\${$aws_env}"
     fi
 done
 
@@ -49,7 +50,7 @@ if [ -d "./docker/notebook" ]; then
 else
     # Script to run resero-labs/docker-ds notebok against the current directory
     if [ "$DOCKER_DS_DONT_PULL" = "pull" ]; then
-        docker pull resero-labs/docker-ds:$DOCKER_TAG
+        docker pull $NOTEBOOK_IMAGE:$DOCKER_TAG
     fi
 
     date_stamp=$(date "+%Y_%m_%d_%H.%M.%S")
@@ -71,12 +72,14 @@ else
                 volume_mounts="--mount type=bind,source=$(pwd),target=/home/jovyan/project"
             fi
         fi
-        echo 'docker run '$GPU_OPTS' --init --name '$USER'_notebook_'$date_stamp' '$DOCKER_ENV' -e NOTEBOOK_MODE=lab '$AWS_ENV' --rm -it '$volume_mounts' -p 8888:8888 resero-labs/docker-ds:'$DOCKER_TAG
-        docker run $GPU_OPTS --init --name $USER"_notebook_"$date_stamp $DOCKER_ENV -e NOTEBOOK_MODE=lab $AWS_ENV --rm -it $volume_mounts -p 8888:8888 resero-labs/docker-ds:$DOCKER_TAG
+        cmd='docker run '$GPU_OPTS' --init --name '$USER'_notebook_'$date_stamp' '$DOCKER_ENV' -e NOTEBOOK_MODE=lab '$AWS_ENV' --rm -it '$volume_mounts' -p 8888:8888 '$NOTEBOOK_IMAGE':'$DOCKER_TAG
+        echo $cmd
+        eval $cmd
     else
         sync-up
-        echo 'docker run '$GPU_OPTS' --init --name '$USER'_notebook_'$date_stamp' '$DOCKER_ENV' -e NOTEBOOK_MODE=lab '$AWS_ENV' --rm -it --mount type=bind,source=/data/workspaces/'$USER'/code/'${PWD##*/}',target=/home/jovyan/project -v /data:/data -p 8888:8888 resero-labs/docker-ds:'$DOCKER_TAG
-        docker run --init $GPU_OPTS --name $USER"_notebook_"$date_stamp $DOCKER_ENV -e NOTEBOOK_MODE=lab $AWS_ENV --rm -it --mount type=bind,source="/data/workspaces/"$USER"/code/"${PWD##*/}",target=/home/jovyan/project" -v /data:/data -p 8888:8888 resero-labs/docker-ds:$DOCKER_TAG
+        cmd='docker run '$GPU_OPTS' --init --name '$USER'_notebook_'$date_stamp' '$DOCKER_ENV' -e NOTEBOOK_MODE=lab '$AWS_ENV' --rm -it --mount type=bind,source=/data/workspaces/'$USER'/code/'${PWD##*/}',target=/home/jovyan/project -v /data:/data -p 8888:8888 '$NOTEBOOK_IMAGE':'$DOCKER_TAG
+        echo $cmd
+        eval $cmd
         sync-down
     fi
 fi
