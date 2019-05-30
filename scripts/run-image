@@ -21,7 +21,7 @@ else:
 
 
 _base_cmd = 'docker run {init} --name {name} {environment} {keep_container} {interactive} {gpu} {network} ' \
-            '{volumes} {ports} {image_name}:{image_tag} {cmd}'
+            '{volumes} {ports} {args} {image_name}:{image_tag} {cmd}'
 
 
 def fetch_env_variables(config, image, args_env=None):
@@ -78,6 +78,7 @@ def run(mode, image_name, image_tag, **kwargs):
                            environment=kwargs['environment'],
                            network=kwargs['network'],
                            ports=kwargs['ports'],
+                           args=kwargs['args'],
                            volumes=volumes,
                            gpu=kwargs['gpu'],
                            cmd=kwargs['cmd'],
@@ -104,13 +105,12 @@ if __name__ == '__main__':
 
         parser = argparse.ArgumentParser()
         parser.add_argument("image", choices=image_types, help="Docker image to run")
+        parser.add_argument("-a", "--args", help="general docker arguments", default='')
         parser.add_argument("-k", "--keep", help="keep the image after execution", action='store_true')
         parser.add_argument("-c", "--command", help="Command for image override")
         parser.add_argument("-n", "--network", help="Network for image override", default='')
         parser.add_argument("-g", "--use-gpu", dest='use_gpu', default=False, action='store_true',
                             help="Start the container with gpu support")
-        parser.add_argument("-p", "--pre", default=False, action='store_true',
-                            help="use pre 1.25 API")
         parser.add_argument("-e", "--env", action='append',
                             help="environment variables to pass to running container, e.g. foo=bar")
         args = parser.parse_args()
@@ -119,10 +119,6 @@ if __name__ == '__main__':
             gpu = '--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all'
         else:
             gpu = ''
-        if args.pre:
-            init = ''
-        else:
-            init = '--init'
 
         run_config = {
             'environment': fetch_env_variables(config, args.image, args.env) + populate_aws_env_variables(),
@@ -133,7 +129,8 @@ if __name__ == '__main__':
             'volumes': '',
             'ports': '',
             'cmd': args.command or '',
-            'init': init
+            'init': '--init',
+            'args': args.args
         }
 
         is_docked = bool(os.environ.get('DOCKER_IP'))
