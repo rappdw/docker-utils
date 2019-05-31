@@ -51,7 +51,7 @@ def build(image, image_name, image_tag, config, pull=False):
         # otherwise, a prune will remove the layers used during the builder phase and subsequent
         # builds will take longer than required
         rc = image_operation(
-            'docker build {pull_base} --compress -t {image_name}-builder:{image_tag} -f docker/{image}/Dockerfile --target builder {args}.'
+            'docker build {pull_base} --compress -t {image_name}-builder:{image_tag} -f docker/{image}/Dockerfile --target builder {args} .'
                 .format(pull_base=pull_base, image_name=image_name, image=image, image_tag=image_tag, args=args))
     if not rc:
         rc = image_operation(
