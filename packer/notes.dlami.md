@@ -62,3 +62,6 @@ that looks like: `2019-01-24 17:52:10,320 INFO All upgrades installed` (should b
 
 11) Switch names of previous resero-labs-dlami with the one just created
 
+    rotate existing `resero-labs-dlami-ssh` to a dated version, e.g. `resero-labs-dlami-ssh-2019.06`
+    rotate candidate `resero-labs-dlami-candidate-ssh` to `resero-labs-dlami-ssh`
+

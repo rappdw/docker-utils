@@ -107,7 +107,7 @@ if [ -n "$hflag" ] || [ "$RESPONSE" == "h" ]; then
 fi
 
 if [ -z "$AMI_ID" ]; then
-    AMI_ID=$(aws ec2 describe-images --filters "Name=tag:Name,Values=resero-labs-dlami" --query 'Images[*].{ID:ImageId}' --output text)
+    AMI_ID=$(aws ec2 describe-images --filters "Name=tag:Name,Values=resero-labs-dlami-ssh" --query 'Images[*].{ID:ImageId}' --output text)
     if [ -z "$AMI_ID" ]; then
         echo "Unable to fetch default AMI ID."
         exit 1
