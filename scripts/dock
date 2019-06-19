@@ -100,7 +100,7 @@ castoff() {
 
 . dock-sync
 
-export DOCKER_HOST=ssh://${DOCK_IP}
+export DOCKER_HOST=ssh://${DOCK_MONIKER}
 export DOCKER_IP=${DOCK_IP}
 export _DOCK_MONIKER="[dock:$DOCK_MONIKER] "
 
