@@ -63,7 +63,6 @@ print_help() {
 
     echo -e "\n -i instance-type\n    The default instance type is ${INSTANCE_TYPE} (no GPU).\n    Other options include p2.xlarge (GPU), m5.2xlarge, etc."
     echo -e "\n -a ami-id\n    (Optional) The ami to use for the instance."
-    echo -e "\n -s skip-regisration\n    (Optional) Skip running register-dock."
     echo -e "\n -h help\n    This help"
     echo
     echo "Examples"
@@ -89,15 +88,13 @@ nflag=''    # dock name flag
 iflag=''    # instance type
 aflag=''    # ami flag
 mflag=''    # moniker flag
-regflag='true'
-while getopts 'hn:i:a:m:s' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+while getopts 'hn:i:a:m:' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
   case "${flag}" in
     h) hflag='true';;
     n) nflag='true'; INSTANCE_NAME="${OPTARG}" ;;
     i) iflag='true'; INSTANCE_TYPE="${OPTARG}" ;;
     a) aflag='true'; AMI_ID="${OPTARG}" ;;
     m) mflag='true'; MONIKER="${OPTARG}" ;;
-    s) regflag='';;
     *) error "Unexpected option ${flag}" ;;
   esac
 done
@@ -128,16 +125,17 @@ fi
 # Create dock
 if [ -e "$HOME/.docker/dock.cfg" ]; then
     source "$HOME/.docker/dock.cfg"
-else
-    key_name="resero-staging"
-    security_group_ids="sg-213eb35a sg-3bde0341 sg-b93e0dc2 sg-1bd90461"
-    iam_instance_profile="lanista-app"
-    subnet_id="subnet-b8b440de"
-    tag_specifications="ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},\
-            {Key=business_unit,Value='Archiving & Governance'},{Key=component,Value='ec2 instance'},\
-            {Key=product,Value='Resero Development'},{Key=support_level,Value=dev},\
-            {Key=created_by,Value=${USERNAME}}]"
 fi
+
+key_name=${key_name:-"resero-staging"}
+security_group_ids=${security_group_ids:-"sg-213eb35a sg-3bde0341 sg-b93e0dc2 sg-1bd90461"}
+iam_instance_profile=${iam_instance_profile:-"lanista-app"}
+subnet_id=${subnet_id:-"subnet-b8b440de"}
+tag_specifications=${tag_specifications:-"ResourceType=instance,Tags=[{Key=Name,Value=${INSTANCE_NAME}},\
+        {Key=business_unit,Value='Archiving & Governance'},{Key=component,Value='ec2 instance'},\
+        {Key=product,Value='Resero Development'},{Key=support_level,Value=dev},\
+        {Key=created_by,Value=${USERNAME}}]"}
+
 if [ ! -f "$HOME/.ssh/$key_name" ]; then
     echo
     echo
@@ -166,15 +164,8 @@ if [ ! -z "$INSTANCE_ID" ]; then
 
     IP_ADDRESS=$(get_private_ip $INSTANCE_ID)
 
-    if [ -n "$regflag" ]; then
-        if [ $(echo $IP_ADDRESS | grep -c -E '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}') == 1 ]; then
-            echo 'Registering secure remote docker api'
-            register-dock -f ubuntu "$IP_ADDRESS" "$MONIKER" "$INSTANCE_ID"
-        fi
-    else
-        mkdir -p ~/.docker/${IP_ADDRESS}
-        printf "DOCK_USER=ubuntu\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$IP_ADDRESS\nDOCK_IP=$IP_ADDRESS\n" > $HOME/.docker/${IP_ADDRESS}/connection_config.txt
-    fi
+    mkdir -p ~/.docker/${IP_ADDRESS}
+    printf "DOCK_USER=ubuntu\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$IP_ADDRESS\nDOCK_IP=$IP_ADDRESS\n" > $HOME/.docker/${IP_ADDRESS}/connection_config.txt
     printf "DOCK_INSTANCE_ID=$INSTANCE_ID" >> $HOME/.docker/${IP_ADDRESS}/connection_config.txt &&
 
 
@@ -182,8 +173,7 @@ if [ ! -z "$INSTANCE_ID" ]; then
     echo "try these commands:"
     echo " $ source dock $IP_ADDRESS"
     echo " $ castoff"
-    echo " $ ssh-add -K ~/.ssh/private-key-name"
-    echo " $ ssh ubuntu@$IP_ADDRESS"
+    echo " $ ssh-dock $MONIKER"
 else
     echo "Failed to create instance."
 fi

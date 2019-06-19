@@ -37,7 +37,6 @@ setup_options = dict(
         'scripts/ls-dock',
         'scripts/nb-dock',
         'scripts/publish-image',
-        'scripts/register-dock',
         'scripts/run-image',
         'scripts/run-notebook',
         'scripts/ssh-dock',

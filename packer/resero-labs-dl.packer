@@ -1,7 +1,7 @@
 {
   "builders": [
     {
-      "ami_name": "resero-labs-dlami-2019.06-b23.0-2019.06",
+      "ami_name": "resero-labs-dlami-2019.06-b23.0-2019.06-ssh",
       "type": "amazon-ebs",
       "force_deregister": "true",
       "instance_type": "p3.2xlarge",
@@ -27,17 +27,12 @@
       "iam_instance_profile": "lanista-app",
       "subnet_id": "subnet-6c555b25",
       "tags": {
-        "Name": "resero-labs-dlami-candidate"
+        "Name": "resero-labs-dlami-candidate-ssh"
       }
     }
   ],
   "post-processors": [],
   "provisioners": [
-    {
-      "type": "file",
-      "source": "configure-docker.sh",
-      "destination": "/home/ubuntu/configure-docker.sh"
-    },
     {
       "type": "file",
       "source": "update-anaconda.sh",
@@ -59,16 +54,21 @@
       "destination": "/home/ubuntu/disable-unattended-upgrades.sh"
     },
     {
+      "type": "file",
+      "source": "docker-server-daemon.json",
+      "destination": "/home/ubuntu/daemon.json"
+    },
+    {
       "type": "shell",
       "inline": [
-        "/home/ubuntu/configure-docker.sh",
         "/home/ubuntu/update-anaconda.sh",
         "/home/ubuntu/configure-jupyter.sh",
         "/home/ubuntu/disable-unattended-upgrades.sh",
-        "rm /home/ubuntu/configure-docker.sh",
         "rm /home/ubuntu/update-anaconda.sh",
         "rm /home/ubuntu/configure-jupyter.sh",
         "rm /home/ubuntu/disable-unattended-upgrades.sh",
+        "sudo mkdir -p /etc/docker",
+        "sudo mv /home/ubuntu/daemon.json /etc/docker/daemon.json",
         "sudo mkdir -p /data/workspaces",
         "sudo chown -R ubuntu /data"
       ]
