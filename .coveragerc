@@ -1,3 +1,4 @@
 [run]
 omit = dockerutils/_version.py
     dockerutils/sshconf.py
+    dockerutils/update_ssh.py
