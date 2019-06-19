@@ -166,8 +166,10 @@ if [ ! -z "$INSTANCE_ID" ]; then
 
     mkdir -p ~/.docker/${IP_ADDRESS}
     printf "DOCK_USER=ubuntu\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$IP_ADDRESS\nDOCK_IP=$IP_ADDRESS\n" > $HOME/.docker/${IP_ADDRESS}/connection_config.txt
-    printf "DOCK_INSTANCE_ID=$INSTANCE_ID" >> $HOME/.docker/${IP_ADDRESS}/connection_config.txt &&
+    printf "DOCK_INSTANCE_ID=$INSTANCE_ID" >> $HOME/.docker/${IP_ADDRESS}/connection_config.txt
 
+    # update the ~/.ssh/config
+    python3 -c "from dockerutils.update_ssh import add_dock; add_dock(\"$MONIKER\", \"$IP_ADDRESS\", \"$USERNAME\")"
 
     echo "New EC2 instance available to dock at $IP_ADDRESS"
     echo "try these commands:"

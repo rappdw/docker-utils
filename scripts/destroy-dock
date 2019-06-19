@@ -87,6 +87,9 @@ if [ -n "$INSTANCE_ID" ]; then
   aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}" --output text
 fi
 
+# update the ~/.ssh/config
+python3 -c "from dockerutils.update_ssh import remove_dock; remove_dock(\"$MONIKER\")"
+
 if [ -n "$f" ]; then
     rm -rf $f
 fi
