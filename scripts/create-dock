@@ -51,12 +51,11 @@ print_help() {
     echo '    tag_specifications="..."'
     echo
     echo "Usage"
-    echo "  $ create-dock [options]"
+    echo "  $ create-dock [options] [moniker]"
     echo
     echo "Options"
     echo -e "\n -n dock-name\n    Specify a name for this dock with this format: my-dock-name"
     echo -e "    If dock-name is not specified, the name defaults to ${GREEN}${INSTANCE_NAME}${NO_COLOR}"
-    echo -e "\n -m moniker\n    moniker will be added to your cli prompt to indicate that you are docked. (Default: instance IP address)"
     echo
     echo "    Example CLI prompt with python virtual environment enabled and docked to remote worker:"
     echo -e "    $ (venv-name) prompt$ [dock:moniker] "
@@ -88,16 +87,32 @@ nflag=''    # dock name flag
 iflag=''    # instance type
 aflag=''    # ami flag
 mflag=''    # moniker flag
-while getopts 'hn:i:a:m:' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+while getopts ':hn:i:a:' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
   case "${flag}" in
     h) hflag='true';;
     n) nflag='true'; INSTANCE_NAME="${OPTARG}" ;;
     i) iflag='true'; INSTANCE_TYPE="${OPTARG}" ;;
     a) aflag='true'; AMI_ID="${OPTARG}" ;;
     m) mflag='true'; MONIKER="${OPTARG}" ;;
-    *) error "Unexpected option ${flag}" ;;
+    \?) echo "Invalid options"; print_help ;;
   esac
 done
+shift $((OPTIND -1))
+
+if [ "$#" -gt "1" ]; then
+    print_help
+fi
+
+# moniker is optional, we'll default to <username>-dock if not supplied
+# moniker is avaialble via the -m flag (for backward compatibility) and as the 1st positional param
+
+if [ -z "$MONIKER" ]; then
+    if [ "$#" -eq "0" ]; then
+        MONIKER="$(whoami)-dock"
+    elif [ "$#" -eq "1" ]; then
+        MONIKER=$@
+    fi
+fi
 
 INSTANCE_NAME="${USERNAME}-${MONIKER:-dock}"
 
@@ -173,9 +188,9 @@ if [ ! -z "$INSTANCE_ID" ]; then
 
     echo "New EC2 instance available to dock at $IP_ADDRESS"
     echo "try these commands:"
-    echo " $ source dock $IP_ADDRESS"
+    echo " $ source dock $MONIKER"
     echo " $ castoff"
-    echo " $ ssh-dock $MONIKER"
+    echo " $ ssh $MONIKER"
 else
     echo "Failed to create instance."
 fi
