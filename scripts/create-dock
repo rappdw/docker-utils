@@ -25,7 +25,8 @@ confirm_create() {
     if [ -z "$1" ]; then
         echo -e "Create dock with the following values?"
         echo -e "Instance type: ${GREEN}${INSTANCE_TYPE}${NO_COLOR}"
-        echo -e "Name: ${GREEN}${INSTANCE_NAME}${NO_COLOR}"
+        echo -e "Instance Name: ${GREEN}${INSTANCE_NAME}${NO_COLOR}"
+        echo -e "Moniker: ${GREEN}${MONIKER}${NO_COLOR}"
         echo -e "AMI ID: ${GREEN}${AMI_ID}${NO_COLOR}"
         read -e -p "Type enter to Cancel, h for Help, y to Create: " RESPONSE
     fi
@@ -108,13 +109,15 @@ fi
 
 if [ -z "$MONIKER" ]; then
     if [ "$#" -eq "0" ]; then
-        MONIKER="$(whoami)-dock"
+        MONIKER="${USERNAME}-dock"
+        INSTANCE_NAME=${INSTANCE_NAME:-"${USERNAME}-dock"}
     elif [ "$#" -eq "1" ]; then
         MONIKER=$@
+        INSTANCE_NAME=${INSTANCE_NAME:-"${USERNAME}-${MONIKER}"}
     fi
 fi
 
-INSTANCE_NAME="${USERNAME}-${MONIKER:-dock}"
+INSTANCE_NAME=${INSTANCE_NAME:-"${USERNAME}-${MONIKER}"}
 
 # Help
 if [ -n "$hflag" ] || [ "$RESPONSE" == "h" ]; then
@@ -184,7 +187,7 @@ if [ ! -z "$INSTANCE_ID" ]; then
     printf "DOCK_INSTANCE_ID=$INSTANCE_ID" >> $HOME/.docker/${IP_ADDRESS}/connection_config.txt
 
     # update the ~/.ssh/config
-    python3 -c "from dockerutils.update_ssh import add_dock; add_dock(\"$MONIKER\", \"$IP_ADDRESS\", \"$USERNAME\")"
+    python3 -c "from dockerutils.update_ssh import add_dock; add_dock(\"$MONIKER\", \"$IP_ADDRESS\", \"ubuntu\")"
 
     echo "New EC2 instance available to dock at $IP_ADDRESS"
     echo "try these commands:"

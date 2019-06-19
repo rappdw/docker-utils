@@ -24,11 +24,8 @@ print_help() {
     echo "  This script uses the aws cli to terminate an existing ec2 dock instance."
     echo "  Either the dock ip or the moniker must be provided"
     echo ""
-    echo "  Options:"
-    echo "    -f   Disable termination protection and then terminate" 
-    echo
     echo "Usage"
-    echo "  $ destroy-dock moniker|ip <-f>"
+    echo "  $ destroy-dock moniker|ip"
     echo
 
     exit 0
@@ -36,10 +33,9 @@ print_help() {
 
 # Parse command line arguments in any order
 disable_terminate_protection=false
-while getopts 'hf' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+while getopts 'h' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
   case "${flag}" in
     h) hflag='true';;
-    f) disable_terminate_protection=true;;
     *) error "Unexpected option ${flag}" ;;
   esac
 done
@@ -79,12 +75,10 @@ if [ "$RESPONSE" != "y" ] && [ "$RESPONSE" != "h" ]; then
 fi
 
 if [ -n "$INSTANCE_ID" ]; then
-  if ${disable_terminate_protection}; then
     for I in $INSTANCE_ID; do
       aws ec2 modify-instance-attribute --no-disable-api-termination --instance-id "$I"
     done
-  fi
-  aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}" --output text
+    aws ec2 terminate-instances --instance-ids "${INSTANCE_ID}" --output text
 fi
 
 # update the ~/.ssh/config
