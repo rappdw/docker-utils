@@ -28,6 +28,3 @@ fi
 
 echo "Opening ssh connection to ${DOCKER_IP}"
 ssh ubuntu@${DOCKER_IP}
-
-
-

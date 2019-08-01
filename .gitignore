@@ -11,3 +11,4 @@ activate
 .coverage
 .pytest_cache
 .venv
+.vscode
