@@ -20,7 +20,7 @@ The commands used to operate against these entities are:
 
 | CommandSet /  Entity |         Creation         |       Execution      |   Notebook   |            Utility           |
 |----------------------|:------------------------:|:--------------------:|:------------:|:----------------------------:|
-|         Dock         | create-dock <br/> destroy-dock | start-dock <br/> stop-dock | nb-dock      | source dock <br/> ls-dock <br/> ssh-dock |
+|         Dock         | register-dock <br/> unregister-dock | start-dock <br/> stop-dock | nb-dock      | source dock <br/> ls-dock <br/> ssh-dock |
 |         Image        | build-image              | run-image            | run-notebook | publish-image <br/> transfer-image |
 
 Possible use cases include:
@@ -48,7 +48,7 @@ for containers that are dependent solely on the project
     pypi, etc.), for instance a server in a "locked-down" environment. A base image can be defined to isolate any 
     dependencies that are required. That image can then be built and `transfer-image` used to transfer the base image 
     to the target environment.
-     
+
     Subsequent images can be built based off of that image that are "self-contained" (relying only on source
     from the project). The remote docker api can then be used to quickly iterate only requiring the more
     cumbersome transfer-image to be used when external dependencies change.
@@ -56,7 +56,7 @@ for containers that are dependent solely on the project
 
     Includes setting most docker parameters, i.e. volume mounts, ports, networks, commands, etc. with
     replacement varilable support for things like user, project root, etc.
-    
+
 ## Command-line Interface
 
 ### Image cli
@@ -83,15 +83,13 @@ the latest version from docker hub.
 
 ### Dock cli
 
-A "dock" is a remote system that has a docker daemon running and configured in a secure fashion (generally an EC2 
-instance). You can "dock" your terminal to a remote instance and any docker commands, including image and notebook cli
-above will be run against the remote docker server. Once a "dock" is created, you can dock your terminal by issuing 
-the command `source dock <server IP or moniker>`
+A "dock" is a remote system that you can connect to through `ssh`. You can "dock" your terminal to a remote instance and
+any docker commands, including image and notebook cli above will be run against the remote docker server. Once a "dock"
+is created, you can dock your terminal by issuing the command `source dock <server IP or moniker>`
 
-`create-dock` will start an ec2 instance that can be used for remote docking. This instance is configured to provide 
-secure interaction with the docker server, as well as to support GPU utliziation (`-g` option with `run-image`)
+`register-dock` is used to add a remote system to the dock list with all its configuration (username, ip and a moniker)
 
-`destroy-dock` will terminate a remote dock instance and delete any local configuration files
+`unregister-dock` is used to remove the reference to the remote system
 
 `stop-dock` will change the instances state of a remote dock to `stopped`
 
