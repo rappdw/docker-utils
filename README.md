@@ -158,7 +158,8 @@ variable replacement designations of the form `{var}`.  The supported variables 
 
 * `project_root` - will be replaced with the root directory name of the project
 * `user` - will be replaced with the user name of the user running the command
-* `project` - replace with project namge
+* `project` - will be replaced with project name
+* `home` - will be replaced with the user's home directory
 
 ### Image Push Replacement Variables
 

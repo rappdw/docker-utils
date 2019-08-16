@@ -66,7 +66,8 @@ def run(mode, image_name, image_tag, **kwargs):
     volumes = kwargs['volumes'].format(
         project_root=get_root_dir(),
         user=user,
-        project=os.path.split(get_root_dir())[1]
+        project=os.path.split(get_root_dir())[1],
+        home=os.path.expanduser("~")
     )
     volumes = os.path.expandvars(volumes)
 
