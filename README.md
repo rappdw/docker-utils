@@ -20,7 +20,7 @@ The commands used to operate against these entities are:
 
 | CommandSet /  Entity |         Creation         |       Execution      |   Notebook   |            Utility           |
 |----------------------|:------------------------:|:--------------------:|:------------:|:----------------------------:|
-|         Dock         | register-dock <br/> unregister-dock | start-dock <br/> stop-dock | nb-dock      | source dock <br/> ls-dock <br/> ssh-dock |
+|         Dock         | create-dock <br/> destroy-dock | start-dock <br/> stop-dock | nb-dock      | source dock <br/> ls-dock <br/> ssh-dock |
 |         Image        | build-image              | run-image            | run-notebook | publish-image <br/> transfer-image |
 
 Possible use cases include:
@@ -87,9 +87,9 @@ A "dock" is a remote system that you can connect to through `ssh`. You can "dock
 any docker commands, including image and notebook cli above will be run against the remote docker server. Once a "dock"
 is created, you can dock your terminal by issuing the command `source dock <server IP or moniker>`
 
-`register-dock` is used to add a remote system to the dock list with all its configuration (username, ip and a moniker)
+`create-dock` (`register-dock` if provisioning from AWS console) is used to add a remote system to the dock list with all its configuration (username, ip and a moniker)
 
-`unregister-dock` is used to remove the reference to the remote system
+`destroy-dock` (`unregister-dock` if provisioned from AWS console) is used to remove the reference to the remote system
 
 `stop-dock` will change the instances state of a remote dock to `stopped`
 

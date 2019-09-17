@@ -1,4 +1,129 @@
-#!/usr/bin/env bash
-set -e
+#!/usr/bin/env python3
 
-echo "create-dock has been deprecated, please use AWS Service Catalog"
+from __future__ import print_function
+import os
+import boto3
+import argparse
+import getpass
+import time
+import sys
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dock", help="Name of dock to create")
+    parser.add_argument("-i", "--instance_type", help="instance type to launch", default=None)
+    parser.add_argument("-s", "--subnet", help="subnet ID for instance", default=None)
+    parser.add_argument("-v", "--volume_size", help="Size of block device (in GBytes)", type=int, default=None)
+    args = parser.parse_args()
+
+    provisioning_artifact_id = None
+    path_id = None
+    ip = None
+    instance_id = None
+
+    # first, we need to find the Basic EC2 Instance product
+    client = boto3.client('servicecatalog')
+    response = client.search_products(Filters={
+        'FullTextSearch': ['Basic EC2 instance']
+    })
+    product_id = response['ProductViewSummaries'][0]['ProductId']
+
+    # now we need to find the latest version of this product
+    response = client.describe_product(Id=product_id)
+    for provisioning_artifact in response['ProvisioningArtifacts']:
+        if provisioning_artifact['Name'] == 'latest':
+            provisioning_artifact_id = provisioning_artifact['Id']
+
+    # currently, our products don't have a default path, it would be nice if they were configured
+    # with default path = "launch", but for now, find the launch path
+    response = client.list_launch_paths(ProductId=product_id)
+    for launch_path in response['LaunchPathSummaries']:
+        for constraint in launch_path['ConstraintSummaries']:
+            if constraint['Type'] == 'LAUNCH':
+                path_id = launch_path['Id']
+
+    # get the provisioning parameters and plug in any overrides
+    response = client.describe_provisioning_parameters(ProductId=product_id,
+                                                       ProvisioningArtifactId=provisioning_artifact_id,
+                                                       PathId=path_id)
+
+    parameters = []
+    for parameter in response['ProvisioningArtifactParameters']:
+        key = parameter['ParameterKey']
+        value = parameter['DefaultValue']
+        allowed_values = parameter['ParameterConstraints']['AllowedValues']
+        value_override = None
+        if key == 'InstanceName':
+            value_override = args.dock
+        elif key == 'InstanceType':
+            value_override = args.instance_type
+        elif key == 'SubnetID':
+            value_override = args.subnet
+        elif key == 'VolumeSize':
+            value_override = args.volume_size
+        if value_override and (not allowed_values or value_override in allowed_values):
+            parameters.append({'Key': key, 'Value':value_override})
+
+    # now provision product
+    if (product_id and provisioning_artifact_id and path_id):
+        response = client.provision_product(ProductId=product_id,
+                                            PathId=path_id,
+                                            ProvisioningArtifactId=provisioning_artifact_id,
+                                            ProvisionedProductName=args.dock,
+                                            ProvisioningParameters=parameters,
+                                            Tags=[
+                                                {
+                                                    'Key': 'Name',
+                                                    'Value': args.dock
+                                                },
+                                                {
+                                                    'Key': 'business_unit',
+                                                    'Value': 'Compliance and Digital Risk'
+                                                },
+                                                {
+                                                    'Key': 'component',
+                                                    'Value': 'ec2 instance'
+                                                },
+                                                {
+                                                    'Key': 'product',
+                                                    'Value': 'ML Labs'
+                                                },
+                                                {
+                                                    'Key': 'support_level',
+                                                    'Value': 'dev'
+                                                },
+                                                {
+                                                    'Key': 'created_by',
+                                                    'Value': getpass.getuser()
+                                                }
+                                            ]
+                                            )
+        record_id = response['RecordDetail']['RecordId']
+        provisioned_product_id = response['RecordDetail']['ProvisionedProductId']
+        sys.stdout.write('waiting for launch to complete')
+        while ip is None:
+            sys.stdout.write('.')
+            sys.stdout.flush()
+            time.sleep(2)
+            response = client.describe_record(Id=record_id)
+            for output in response['RecordOutputs']:
+                if output['OutputKey'] == 'InstanceID':
+                    instance_id = output['OutputValue']
+                elif output['OutputKey'] == 'PrivateIP':
+                    ip = output['OutputValue']
+        sys.stdout.write('\n')
+        sys.stdout.flush()
+
+        if 'DOCK_USER' in os.environ:
+            user = os.environ['DOCK_USER']
+        else:
+            user = 'ubuntu'
+        cfg_dir = os.path.join(os.path.join(os.path.expanduser("~"), ".docker"), ip)
+        os.makedirs(cfg_dir, exist_ok=True)
+        f = open(os.path.join(cfg_dir, 'connection_config.txt'), 'w')
+        f.write("DOCK_USER={user}\n".format(user=user))
+        f.write("DOCK_MONIKER={moniker}\n".format(moniker=args.dock))
+        f.write("DOCK_HOSTNAME={ip}\n".format(ip=ip))
+        f.write("DOCK_IP={ip}\n".format(ip=ip))
+        f.write("DOCK_PROVISIONED_PRODUCT={id}\n".format(id=provisioned_product_id))
+        f.close()

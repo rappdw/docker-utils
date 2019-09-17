@@ -41,8 +41,6 @@ echo "DOCK_USER:$DOCK_USER"
 echo "MONIKER:$MONIKER"
 echo "HOSTNAME:$IP"
 
-### copy CA to client.
 mkdir -p ~/.docker/${IP}
 
-DOCKER_CFG_FILE=$(python3 -c "import pkg_resources; print(pkg_resources.resource_filename('dockerutils', 'docker-server-daemon.json'))")
 printf "DOCK_USER=$DOCK_USER\nDOCK_MONIKER=$MONIKER\nDOCK_HOSTNAME=$IP\nDOCK_IP=$IP\n" > $HOME/.docker/${IP}/connection_config.txt

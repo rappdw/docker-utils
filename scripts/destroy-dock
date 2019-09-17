@@ -1,4 +1,35 @@
-#!/usr/bin/env bash
-set -e
+#!/usr/bin/env python3
+from __future__ import print_function
+import os
+import boto3
+import argparse
+import fnmatch
 
-echo "delete-dock has been deprecated, please use AWS Service Catalog"
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument("dock", help="Name of dock to destroy")
+    args = parser.parse_args()
+
+    ip = None
+    provisioned_product_id = None
+
+    cfg_dir = os.path.join(os.path.expanduser("~"), ".docker")
+    for root, dirs, files in os.walk(cfg_dir):
+        for file in files:
+            if fnmatch.fnmatch(file, 'connection_config.txt'):
+                vars = {}
+                with open(os.path.join(root, file)) as f:
+                    for line in f:
+                        if line.startswith('#'):
+                            continue
+                        key, value = line.strip().split('=', 1)
+                        vars[key] = value
+                if vars['DOCK_MONIKER'] == args.dock or vars['DOCK_IP'] == args.dock:
+                    ip = vars['DOCK_IP']
+                    provisioned_product_id = vars['DOCK_PROVISIONED_PRODUCT']
+
+    client = boto3.client('servicecatalog')
+    response = client.terminate_provisioned_product(ProvisionedProductId=provisioned_product_id)
+
+    if response['RecordDetail']['Status'] == 'SUCCEEDED':
+        os.remove(os.path.join(cfg_dir, ip))
