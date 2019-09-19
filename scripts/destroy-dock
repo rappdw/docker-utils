@@ -4,6 +4,9 @@ import os
 import boto3
 import argparse
 import fnmatch
+import sys
+import time
+import shutil
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -31,5 +34,24 @@ if __name__ == '__main__':
     client = boto3.client('servicecatalog')
     response = client.terminate_provisioned_product(ProvisionedProductId=provisioned_product_id)
 
-    if response['RecordDetail']['Status'] == 'SUCCEEDED':
-        os.remove(os.path.join(cfg_dir, ip))
+    record_id = response['RecordDetail']['RecordId']
+    errors = None
+    sys.stdout.write('waiting for terminate to complete')
+    while True:
+        sys.stdout.write('.')
+        sys.stdout.flush()
+        time.sleep(2)
+        response = client.describe_record(Id=record_id)
+        if response['RecordDetail']['Status'] == 'SUCCEEDED':
+            shutil.rmtree(os.path.join(cfg_dir, ip), ignore_errors=True)
+            break
+        elif response['RecordDetail']['Status'] in ['IN_PROGRESS_IN_ERROR', 'FAILED']:
+            sys.stdout.write('\n')
+            sys.stdout.flush()
+            errors = response['RecordDetail']['RecordErrors']
+            break
+    sys.stdout.write('\n')
+    sys.stdout.flush()
+
+    if errors:
+        print(errors)
