@@ -14,6 +14,8 @@ if __name__ == '__main__':
     parser.add_argument("-i", "--instance_type", help="instance type to launch", default=None)
     parser.add_argument("-s", "--subnet", help="subnet ID for instance", default=None)
     parser.add_argument("-v", "--volume_size", help="Size of block device (in GBytes)", type=int, default=None)
+    parser.add_argument("-n", "--product_name", help="Name of the Product to use", default="Basic EC2 Instance")
+    parser.add_argument("-v", "--product_version", help="Version of the product to use", default="latest")
     args = parser.parse_args()
 
     provisioning_artifact_id = None
@@ -24,14 +26,14 @@ if __name__ == '__main__':
     # first, we need to find the Basic EC2 Instance product
     client = boto3.client('servicecatalog')
     response = client.search_products(Filters={
-        'FullTextSearch': ['Basic EC2 instance']
+        'FullTextSearch': [args.product_name]
     })
     product_id = response['ProductViewSummaries'][0]['ProductId']
 
     # now we need to find the latest version of this product
     response = client.describe_product(Id=product_id)
     for provisioning_artifact in response['ProvisioningArtifacts']:
-        if provisioning_artifact['Name'] == 'latest':
+        if provisioning_artifact['Name'] == args.product_version:
             provisioning_artifact_id = provisioning_artifact['Id']
 
     # currently, our products don't have a default path, it would be nice if they were configured
@@ -63,6 +65,8 @@ if __name__ == '__main__':
             value_override = args.volume_size
         if value_override and (not allowed_values or value_override in allowed_values):
             parameters.append({'Key': key, 'Value':value_override})
+        # TODO: figure out a way to make this more general, so that as new products are created, we handle those
+        #  parameters without exapnding the command arg list
 
     # now provision product
     if (product_id and provisioning_artifact_id and path_id):
