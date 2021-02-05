@@ -26,6 +26,11 @@ while getopts 'h' flag; do    # if a character is followed by a colon, that argu
   esac
 done
 
+# Help
+if [ ! -z "$hflag" ]; then
+    print_help
+fi
+
 get_instance_id() {
     aws ec2 describe-instances \
         --filters Name=private-ip-address,Values="$1" \

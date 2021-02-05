@@ -1,9 +1,40 @@
 #!/usr/bin/env bash
 set -e
 
+print_help() {
+    echo "ssh-dock - Help"
+    echo
+    echo "Description"
+    echo "  This will ssh to an existing dock."
+    echo "  If you are in a docked state, you do not need to specify a moniker."
+    echo
+    echo "Usage"
+    echo "  $ ssh-dock [-s <ssh_options>] [dock-moniker]"
+    echo
+
+    exit 0
+}
+
+SSH_OPTS=""
+
+# Parse command line arguments in any order
+while getopts ':hs:' flag; do    # if a character is followed by a colon, that argument is expected to have an argument.
+  case "${flag}" in
+    h) hflag='true';;
+    s) SSH_OPTS=$OPTARG ;;
+    *) error "Unexpected option ${flag}" ;;
+  esac
+done
+shift $((OPTIND -1))
+
+# Help
+if [ ! -z "$hflag" ]; then
+    print_help
+fi
+
 if [[ -z "$DOCKER_IP" && -z "$1" ]]; then
     echo "You must either be docked, or provide a argument specifying the 'moniker' of the dock you want to ssh to"
-    exit -1
+    exit 1
 fi
 
 if [ -n "$1" ]; then
@@ -21,10 +52,10 @@ if [ -n "$1" ]; then
 
     if [ $FOUND_MONIKER = false ]; then
       echo "Can't find dock configuration for $1"
-      exit -1
+      exit 1
     fi
     DOCKER_IP=$DOCK_IP
 fi
 
 echo "Opening ssh connection to ${DOCKER_IP}"
-ssh ubuntu@${DOCKER_IP}
+ssh $SSH_OPTS ubuntu@${DOCKER_IP}
