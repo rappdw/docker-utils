@@ -121,9 +121,13 @@ if __name__ == '__main__':
             gpu = '--runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all'
         else:
             gpu = ''
-
+        is_docked = bool(os.environ.get('DOCKER_IP'))
+        if is_docked:
+            aws_env_vars = ''
+        else:
+            aws_env_vars = populate_aws_env_variables()
         run_config = {
-            'environment': fetch_env_variables(config, args.image, args.env) + ' ' + populate_aws_env_variables(),
+            'environment': fetch_env_variables(config, args.image, args.env) + ' ' + aws_env_vars,
             'keep_container': args.keep or '--rm',
             'interactive': '-d' if args.keep else '-it',
             'gpu': gpu,
@@ -135,7 +139,6 @@ if __name__ == '__main__':
             'args': args.args
         }
 
-        is_docked = bool(os.environ.get('DOCKER_IP'))
 
         if args.image in config.sections():
             for key in run_config.keys():
